@@ -1,98 +1,334 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+/**
+ * Home Screen (Screen 4)
+ * Card-based layout showing all 7 activities grouped by category
+ */
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+
+import {
+  ENGINEERING_ACTIVITIES,
+  HEALTH_ACTIVITIES,
+} from '@/constants/activities';
+import { BorderRadius, Colors, Shadows, Spacing, ThemeColors, Typography } from '@/constants/theme';
+import type { ActivityDefinition, ActivityStatus } from '@/constants/types';
+import { useSettings } from '@/context/SettingsContext';
+import { useTeam } from '@/context/TeamContext';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const router = useRouter();
+  const { resolvedTheme } = useSettings();
+  const { activityProgress } = useTeam();
+  const colors = Colors[resolvedTheme];
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const getStatus = (id: string): ActivityStatus =>
+    activityProgress[id]?.status ?? 'not_started';
+
+  const getBestScore = (id: string) => activityProgress[id]?.bestScore;
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Settings Button */}
+        <TouchableOpacity
+          style={[styles.settingsButton, { backgroundColor: colors.surface }]}
+          onPress={() => router.push('/settings')}
+          accessibilityLabel="Open settings"
+          accessibilityRole="button"
+        >
+          <Text style={styles.settingsIcon}>⚙️</Text>
+        </TouchableOpacity>
+
+        {/* Engineering Challenges */}
+        <CategorySection
+          title="Engineering Challenges"
+          accentColor={colors.engineering}
+          activities={ENGINEERING_ACTIVITIES}
+          colors={colors}
+          getStatus={getStatus}
+          getBestScore={getBestScore}
+          onPress={(id) => router.push(`/activity/${id}`)}
+        />
+
+        {/* Health & Medical Sciences */}
+        <CategorySection
+          title="Health & Medical Sciences"
+          accentColor={colors.health}
+          activities={HEALTH_ACTIVITIES}
+          colors={colors}
+          getStatus={getStatus}
+          getBestScore={getBestScore}
+          onPress={(id) => router.push(`/activity/${id}`)}
+        />
+      </ScrollView>
+    </View>
   );
 }
 
+// ─── Category Section ────────────────────────────────────────────
+
+function CategorySection({
+  title,
+  accentColor,
+  activities,
+  colors,
+  getStatus,
+  getBestScore,
+  onPress,
+}: {
+  title: string;
+  accentColor: string;
+  activities: ActivityDefinition[];
+  colors: ThemeColors;
+  getStatus: (id: string) => ActivityStatus;
+  getBestScore: (id: string) => number | undefined;
+  onPress: (id: string) => void;
+}) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <View
+          style={[styles.sectionAccent, { backgroundColor: accentColor }]}
+        />
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: colors.text },
+          ]}
+        >
+          {title}
+        </Text>
+      </View>
+      {activities.map((activity) => (
+        <ActivityCard
+          key={activity.id}
+          activity={activity}
+          status={getStatus(activity.id)}
+          bestScore={getBestScore(activity.id)}
+          colors={colors}
+          accentColor={accentColor}
+          onPress={() => onPress(activity.id)}
+        />
+      ))}
+    </View>
+  );
+}
+
+// ─── Activity Card ───────────────────────────────────────────────
+
+function ActivityCard({
+  activity,
+  status,
+  bestScore,
+  colors,
+  accentColor,
+  onPress,
+}: {
+  activity: ActivityDefinition;
+  status: ActivityStatus;
+  bestScore?: number;
+  colors: ThemeColors;
+  accentColor: string;
+  onPress: () => void;
+}) {
+  const statusConfig = {
+    not_started: { label: 'Not Started', color: colors.statusNotStarted },
+    in_progress: { label: 'In Progress', color: colors.statusInProgress },
+    completed: { label: 'Completed', color: colors.statusCompleted },
+  };
+
+  const { label: statusLabel, color: statusColor } = statusConfig[status];
+
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.card,
+        {
+          backgroundColor: colors.surface,
+          borderLeftColor: accentColor,
+          transform: [{ scale: pressed ? 0.97 : 1 }],
+        },
+        Shadows.md,
+      ]}
+      onPress={onPress}
+      accessibilityLabel={`${activity.name}. ${statusLabel}. ${activity.shortDescription}`}
+      accessibilityRole="button"
+    >
+      {/* Icon + Content */}
+      <View style={styles.cardContent}>
+        <Text style={styles.cardIcon}>{activity.icon}</Text>
+        <View style={styles.cardTextContainer}>
+          <Text
+            style={[styles.cardTitle, { color: colors.text }]}
+            numberOfLines={1}
+          >
+            {activity.name}
+          </Text>
+          <Text
+            style={[styles.cardDescription, { color: colors.textSecondary }]}
+            numberOfLines={2}
+          >
+            {activity.shortDescription}
+          </Text>
+          <View style={styles.cardMeta}>
+            <Text
+              style={[styles.categoryLabel, { color: accentColor }]}
+            >
+              {activity.categoryLabel}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Footer: Status + Score */}
+      <View style={styles.cardFooter}>
+        <View style={styles.statusBadge}>
+          <View
+            style={[
+              styles.statusDot,
+              { backgroundColor: statusColor },
+            ]}
+          />
+          <Text style={[styles.statusText, { color: statusColor }]}>
+            {statusLabel}
+          </Text>
+        </View>
+        {bestScore !== undefined && (
+          <View
+            style={[
+              styles.scoreBadge,
+              { backgroundColor: colors.backgroundSelected },
+            ]}
+          >
+            <Text style={[styles.scoreText, { color: colors.primary }]}>
+              Best: {bestScore}
+            </Text>
+          </View>
+        )}
+      </View>
+    </Pressable>
+  );
+}
+
+// ─── Styles ──────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: Spacing.lg,
+    paddingBottom: Spacing.xxxxl,
+  },
+  settingsButton: {
+    alignSelf: 'flex-end',
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.full,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+    ...Shadows.sm,
+  },
+  settingsIcon: {
+    fontSize: 20,
+  },
+  section: {
+    marginBottom: Spacing.xl,
+  },
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    marginBottom: Spacing.lg,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  sectionAccent: {
+    width: 4,
+    height: 24,
+    borderRadius: 2,
+    marginRight: Spacing.sm,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  sectionTitle: {
+    fontSize: Typography.headlineMedium.fontSize,
+    fontWeight: Typography.headlineMedium.fontWeight,
+  },
+  card: {
+    borderRadius: BorderRadius.lg,
+    borderLeftWidth: 4,
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  cardContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  cardIcon: {
+    fontSize: 36,
+    marginRight: Spacing.md,
+  },
+  cardTextContainer: {
+    flex: 1,
+  },
+  cardTitle: {
+    fontSize: Typography.titleMedium.fontSize,
+    fontWeight: Typography.titleMedium.fontWeight,
+    marginBottom: Spacing.xxs,
+  },
+  cardDescription: {
+    fontSize: Typography.bodyMedium.fontSize,
+    lineHeight: Typography.bodyMedium.lineHeight,
+    marginBottom: Spacing.sm,
+  },
+  cardMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  categoryLabel: {
+    fontSize: Typography.labelSmall.fontSize,
+    fontWeight: Typography.labelSmall.fontWeight,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: Spacing.xs,
+  },
+  statusText: {
+    fontSize: Typography.labelSmall.fontSize,
+    fontWeight: Typography.labelSmall.fontWeight,
+  },
+  scoreBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: BorderRadius.full,
+  },
+  scoreText: {
+    fontSize: Typography.labelSmall.fontSize,
+    fontWeight: '600',
   },
 });

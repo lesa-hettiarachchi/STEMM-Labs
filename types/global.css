@@ -1,0 +1,17 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap');
+
+:root {
+    --font-sans: 'Inter', 'Roboto', system-ui, -apple-system, sans-serif;
+    --font-mono: 'Fira Code', 'Menlo', monospace;
+    --color-primary: #1A9B7B;
+    --color-primary-variant: #2563EB;
+    --color-secondary: #10B981;
+    --color-background: #F0F2F5;
+    --color-surface: #FFFFFF;
+}
+
+body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}

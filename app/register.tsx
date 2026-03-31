@@ -2,7 +2,6 @@
  * Team Registration Screen (Screen 2)
  * First-launch only — team name, members, grade, school
  */
-
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -20,8 +19,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
 import type { Team, TeamMember } from '@/constants/types';
-import { useSettings } from '@/contexts/SettingsContext';
-import { useTeam } from '@/contexts/TeamContext';
+import { useSettings } from '@/context/SettingsContext';
+import { useTeam } from '@/context/TeamContext';
 import { createTeam } from '@/services/firestore';
 
 const GRADE_OPTIONS = ['Year 5', 'Year 6', 'Year 7', 'Year 8', 'Year 9'];

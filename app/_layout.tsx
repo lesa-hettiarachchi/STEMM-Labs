@@ -7,8 +7,8 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 
-import { SettingsProvider, useSettings } from '@/contexts/SettingsContext';
-import { TeamProvider } from '@/contexts/TeamContext';
+import { SettingsProvider, useSettings } from '@/context/SettingsContext';
+import { TeamProvider } from '@/context/TeamContext';
 
 function RootStack() {
   const { resolvedTheme } = useSettings();
