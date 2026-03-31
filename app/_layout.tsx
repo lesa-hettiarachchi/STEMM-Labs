@@ -1,24 +1,72 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+/**
+ * Root Layout — App Entry Point
+ * Stack navigator with conditional routing (splash → register or tabs)
+ */
+
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import React from 'react';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { SettingsProvider, useSettings } from '@/contexts/SettingsContext';
+import { TeamProvider } from '@/contexts/TeamContext';
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
-
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+function RootStack() {
+  const { resolvedTheme } = useSettings();
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+    <>
+      <StatusBar style={resolvedTheme === 'dark' ? 'light' : 'dark'} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen
+          name="register"
+          options={{
+            gestureEnabled: false, // Can't go back from registration
+          }}
+        />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="settings"
+          options={{
+            headerShown: true,
+            title: 'Settings',
+            animation: 'slide_from_bottom',
+          }}
+        />
+        <Stack.Screen
+          name="help"
+          options={{
+            headerShown: true,
+            title: 'Help & Curriculum',
+            presentation: 'modal',
+          }}
+        />
+        <Stack.Screen name="activity/[id]/index" />
+        <Stack.Screen name="activity/[id]/instructions" />
+        <Stack.Screen name="activity/[id]/record" />
+        <Stack.Screen name="activity/[id]/results" />
+        <Stack.Screen
+          name="activity/[id]/camera"
+          options={{
+            presentation: 'fullScreenModal',
+          }}
+        />
       </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <SettingsProvider>
+      <TeamProvider>
+        <RootStack />
+      </TeamProvider>
+    </SettingsProvider>
   );
 }
