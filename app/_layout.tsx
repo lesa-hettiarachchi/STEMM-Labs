@@ -9,9 +9,11 @@ import React from 'react';
 
 import { SettingsProvider, useSettings } from '@/context/SettingsContext';
 import { TeamProvider } from '@/context/TeamContext';
+import { Colors } from '@/constants/theme';
 
 function RootStack() {
   const { resolvedTheme } = useSettings();
+  const colors = Colors[resolvedTheme];
 
   return (
     <>
@@ -20,6 +22,9 @@ function RootStack() {
         screenOptions={{
           headerShown: false,
           animation: 'slide_from_right',
+          headerBackTitle: 'Back',
+          headerStyle: { backgroundColor: colors.surface },
+          headerTintColor: colors.text,
         }}
       >
         <Stack.Screen name="index" />

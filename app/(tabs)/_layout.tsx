@@ -3,20 +3,18 @@
  * Bottom tabs: Home | Leaderboard | Profile
  */
 
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import React from 'react';
-import { Platform, StyleSheet, Text } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity } from 'react-native';
 
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing } from '@/constants/theme';
 import { useSettings } from '@/context/SettingsContext';
-
-function TabIcon({ emoji, size }: { emoji: string; size: number }) {
-  return <Text style={{ fontSize: size - 4 }}>{emoji}</Text>;
-}
 
 export default function TabLayout() {
   const { resolvedTheme } = useSettings();
   const colors = Colors[resolvedTheme];
+  const router = useRouter();
 
   return (
     <Tabs
@@ -46,26 +44,36 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ size }) => <TabIcon emoji="🏠" size={size} />,
-          headerTitle: 'STEMM Lab',
+          tabBarIcon: ({ size, color }) => <Ionicons name="home" size={size} color={color} />,
+          headerTitle: 'STEMM Labs',
           headerTitleStyle: {
             fontWeight: '700',
             fontSize: 20,
           },
+          headerRight: () => (
+            <TouchableOpacity
+              style={{ marginRight: Spacing.lg, padding: Spacing.xs }}
+              onPress={() => router.push('/settings')}
+              accessibilityLabel="Open settings"
+              accessibilityRole="button"
+            >
+              <Ionicons name="settings" size={24} color={colors.text} />
+            </TouchableOpacity>
+          ),
         }}
       />
       <Tabs.Screen
         name="leaderboard"
         options={{
           title: 'Leaderboard',
-          tabBarIcon: ({ size }) => <TabIcon emoji="🏆" size={size} />,
+          tabBarIcon: ({ size, color }) => <Ionicons name="trophy" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ size }) => <TabIcon emoji="👥" size={size} />,
+          tabBarIcon: ({ size, color }) => <Ionicons name="people" size={size} color={color} />,
           headerTitle: 'Team Profile',
         }}
       />

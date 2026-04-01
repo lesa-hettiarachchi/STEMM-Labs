@@ -137,7 +137,7 @@ export default function RegisterScreen() {
                     <View style={styles.header}>
                         <Text style={styles.headerEmoji}>🔬</Text>
                         <Text style={[styles.title, { color: colors.text }]}>
-                            Welcome to STEMM Lab
+                            Welcome to STEMM Labs
                         </Text>
                         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
                             Register your team to get started

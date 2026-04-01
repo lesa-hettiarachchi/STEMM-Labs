@@ -9,10 +9,10 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { ThemedText as Text } from '@/components/ThemedText';
 
 import {
   ENGINEERING_ACTIVITIES,
@@ -40,16 +40,6 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Settings Button */}
-        <TouchableOpacity
-          style={[styles.settingsButton, { backgroundColor: colors.surface }]}
-          onPress={() => router.push('/settings')}
-          accessibilityLabel="Open settings"
-          accessibilityRole="button"
-        >
-          <Text style={styles.settingsIcon}>⚙️</Text>
-        </TouchableOpacity>
-
         {/* Engineering Challenges */}
         <CategorySection
           title="Engineering Challenges"
@@ -230,19 +220,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.lg,
     paddingBottom: Spacing.xxxxl,
-  },
-  settingsButton: {
-    alignSelf: 'flex-end',
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-    ...Shadows.sm,
-  },
-  settingsIcon: {
-    fontSize: 20,
   },
   section: {
     marginBottom: Spacing.xl,
