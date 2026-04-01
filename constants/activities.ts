@@ -23,7 +23,7 @@ export const ACTIVITIES: ActivityDefinition[] = [
         sensorLabel: 'Camera (slow-motion video)',
         keyMeasurement: 'Drop time, velocity, drag force, g-force',
         equipment: [
-            'Mobile phone with STEMM Lab app',
+            'Mobile phone with STEMM Labs app',
             'Small toy (e.g. army toy soldier)',
             'Table or elevated surface',
             'Paper or plastic',
@@ -98,7 +98,7 @@ export const ACTIVITIES: ActivityDefinition[] = [
         sensorType: 'microphone',
         sensorLabel: 'Microphone (dB meter)',
         keyMeasurement: 'Sound level (dB)',
-        equipment: ['Mobile phone with STEMM Lab app'],
+        equipment: ['Mobile phone with STEMM Labs app'],
         instructions: [
             { step: 1, text: 'Measure noise from different actions (dropping objects — pens, books — talking, walking, stamping your feet).', requiresSensor: true, sensorLabel: 'Start Sound Meter' },
             { step: 2, text: 'Record sound levels and locations.' },
@@ -155,7 +155,7 @@ export const ACTIVITIES: ActivityDefinition[] = [
             'Scissors',
             'Mobile phone',
             'Sticky tape',
-            'STEMM Lab app',
+            'STEMM Labs app',
         ],
         instructions: [
             { step: 1, text: 'Stand paper upright on a table.' },
@@ -270,7 +270,7 @@ export const ACTIVITIES: ActivityDefinition[] = [
         sensorLabel: 'Accelerometer (vibration/smoothness)',
         keyMeasurement: 'Smoothness score, movement time',
         equipment: [
-            'Mobile phone with STEMM Lab app',
+            'Mobile phone with STEMM Labs app',
             'Open space to move safely',
         ],
         instructions: [
@@ -325,7 +325,7 @@ export const ACTIVITIES: ActivityDefinition[] = [
         sensorLabel: 'Touchscreen timer',
         keyMeasurement: 'Reaction time (ms)',
         equipment: [
-            'Mobile phone with STEMM Lab app',
+            'Mobile phone with STEMM Labs app',
             'Clear working space',
         ],
         instructions: [
@@ -384,7 +384,7 @@ export const ACTIVITIES: ActivityDefinition[] = [
         sensorLabel: 'Accelerometer (chest movement)',
         keyMeasurement: 'Breaths per minute, amplitude',
         equipment: [
-            'Mobile phone with STEMM Lab app',
+            'Mobile phone with STEMM Labs app',
             'Flat surface or mat',
         ],
         instructions: [
