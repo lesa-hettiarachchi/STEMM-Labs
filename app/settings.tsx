@@ -3,16 +3,18 @@
  * Theme toggle, text size, data reset, app info
  */
 
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import {
     Alert,
     ScrollView,
     StyleSheet,
-    Text,
     TouchableOpacity,
-    View
+    View,
+    Text as RNText
 } from 'react-native';
+import { ThemedText as Text } from '@/components/ThemedText';
 
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useSettings } from '@/context/SettingsContext';
@@ -36,6 +38,8 @@ export default function SettingsScreen() {
     } = useSettings();
     const { clearTeam } = useTeam();
     const colors = Colors[resolvedTheme];
+
+    const [selectedTextSizeMultiplier, setSelectedTextSizeMultiplier] = useState(textSizeMultiplier);
 
     const handleClearData = () => {
         Alert.alert(
@@ -64,9 +68,12 @@ export default function SettingsScreen() {
             >
                 {/* Theme Section */}
                 <View style={[styles.section, { backgroundColor: colors.surface }, Shadows.sm]}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                        🎨 Appearance
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm }}>
+                        <Ionicons name="color-palette-outline" size={24} color={colors.primary} style={{ marginRight: Spacing.sm }} />
+                        <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0 }]}>
+                            Theme
+                        </Text>
+                    </View>
 
                     <View style={styles.themeOptions}>
                         {(['system', 'light', 'dark'] as const).map((mode) => (
@@ -87,9 +94,12 @@ export default function SettingsScreen() {
                                 accessibilityLabel={`Set theme to ${mode}`}
                                 accessibilityRole="button"
                             >
-                                <Text style={styles.themeIcon}>
-                                    {mode === 'system' ? '📱' : mode === 'light' ? '☀️' : '🌙'}
-                                </Text>
+                                <Ionicons
+                                    name={mode === 'system' ? 'phone-portrait-outline' : mode === 'light' ? 'sunny-outline' : 'moon-outline'}
+                                    size={24}
+                                    color={themeMode === mode ? colors.onPrimary : colors.text}
+                                    style={{ marginBottom: Spacing.xs }}
+                                />
                                 <Text
                                     style={[
                                         styles.themeLabel,
@@ -108,9 +118,12 @@ export default function SettingsScreen() {
 
                 {/* Text Size Section */}
                 <View style={[styles.section, { backgroundColor: colors.surface }, Shadows.sm]}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                        🔤 Text Size
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm }}>
+                        <Ionicons name="text-outline" size={24} color={colors.primary} style={{ marginRight: Spacing.sm }} />
+                        <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0 }]}>
+                            Text Size
+                        </Text>
+                    </View>
                     <Text style={[styles.sectionHint, { color: colors.textSecondary }]}>
                         Adjust text size for better readability
                     </Text>
@@ -123,16 +136,16 @@ export default function SettingsScreen() {
                                     styles.textSizeOption,
                                     {
                                         backgroundColor:
-                                            textSizeMultiplier === option.value
+                                            selectedTextSizeMultiplier === option.value
                                                 ? colors.primary
                                                 : colors.backgroundElement,
                                         borderColor:
-                                            textSizeMultiplier === option.value
+                                            selectedTextSizeMultiplier === option.value
                                                 ? colors.primary
                                                 : colors.border,
                                     },
                                 ]}
-                                onPress={() => setTextSizeMultiplier(option.value)}
+                                onPress={() => setSelectedTextSizeMultiplier(option.value)}
                                 accessibilityLabel={`Set text size to ${option.label}`}
                                 accessibilityRole="button"
                             >
@@ -142,7 +155,7 @@ export default function SettingsScreen() {
                                         {
                                             fontSize: 14 * option.value,
                                             color:
-                                                textSizeMultiplier === option.value
+                                                selectedTextSizeMultiplier === option.value
                                                     ? colors.onPrimary
                                                     : colors.text,
                                         },
@@ -155,7 +168,7 @@ export default function SettingsScreen() {
                                         styles.textSizePercent,
                                         {
                                             color:
-                                                textSizeMultiplier === option.value
+                                                selectedTextSizeMultiplier === option.value
                                                     ? 'rgba(255,255,255,0.7)'
                                                     : colors.textSecondary,
                                         },
@@ -174,22 +187,36 @@ export default function SettingsScreen() {
                             { backgroundColor: colors.backgroundElement },
                         ]}
                     >
-                        <Text
+                        <RNText
                             style={{
-                                fontSize: Typography.bodyLarge.fontSize * textSizeMultiplier,
+                                fontSize: Typography.bodyLarge.fontSize * selectedTextSizeMultiplier,
                                 color: colors.text,
                             }}
                         >
                             Preview text at current size
-                        </Text>
+                        </RNText>
                     </View>
+
+                    {selectedTextSizeMultiplier !== textSizeMultiplier && (
+                        <TouchableOpacity
+                            style={[styles.confirmButton, { backgroundColor: colors.primary }]}
+                            onPress={() => setTextSizeMultiplier(selectedTextSizeMultiplier)}
+                        >
+                            <Text style={[styles.confirmButtonText, { color: colors.onPrimary }]}>
+                                Confirm Selection
+                            </Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
 
                 {/* Danger Zone */}
                 <View style={[styles.section, { backgroundColor: colors.surface }, Shadows.sm]}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                        ⚠️ Data Management
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm }}>
+                        <Ionicons name="warning-outline" size={24} color={colors.error} style={{ marginRight: Spacing.sm }} />
+                        <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0 }]}>
+                            Data Management
+                        </Text>
+                    </View>
 
                     <TouchableOpacity
                         style={[styles.dangerButton, { backgroundColor: colors.error + '15' }]}
@@ -197,9 +224,12 @@ export default function SettingsScreen() {
                         accessibilityLabel="Clear all app data"
                         accessibilityRole="button"
                     >
-                        <Text style={[styles.dangerButtonText, { color: colors.error }]}>
-                            Clear All Data
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
+                            <Ionicons name="trash-outline" size={20} color={colors.error} />
+                            <Text style={[styles.dangerButtonText, { color: colors.error }]}>
+                                Clear All Data
+                            </Text>
+                        </View>
                         <Text
                             style={[
                                 styles.dangerHint,
@@ -214,7 +244,7 @@ export default function SettingsScreen() {
                 {/* App Info */}
                 <View style={styles.appInfo}>
                     <Text style={[styles.appName, { color: colors.textSecondary }]}>
-                        STEMM Lab v1.0.0
+                        STEMM Labs v1.0.0
                     </Text>
                     <Text style={[styles.appCredits, { color: colors.textSecondary }]}>
                         CSE3MAD – Mobile Application Development
@@ -282,6 +312,16 @@ const styles = StyleSheet.create({
         padding: Spacing.lg,
         borderRadius: BorderRadius.md,
         alignItems: 'center',
+    },
+    confirmButton: {
+        marginTop: Spacing.lg,
+        padding: Spacing.lg,
+        borderRadius: BorderRadius.lg,
+        alignItems: 'center',
+    },
+    confirmButtonText: {
+        fontSize: Typography.labelLarge.fontSize,
+        fontWeight: '600',
     },
     dangerButton: {
         padding: Spacing.lg,
