@@ -1,0 +1,356 @@
+/**
+ * Activity Instructions Screen (Screen 7)
+ * Step-by-step instructions with sensor activation buttons
+ */
+
+import { Ionicons } from '@expo/vector-icons';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+    Animated,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+
+import { getActivityById } from '@/constants/activities';
+import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
+import { useSettings } from '@/context/SettingsContext';
+
+export default function InstructionsScreen() {
+    const { id } = useLocalSearchParams<{ id: string }>();
+    const router = useRouter();
+    const { resolvedTheme } = useSettings();
+    const colors = Colors[resolvedTheme];
+
+    const activity = getActivityById(id);
+    const [currentStep, setCurrentStep] = useState(0);
+    const fadeAnim = useRef(new Animated.Value(1)).current;
+
+    // Timer state (for timed activities like Parachute)
+    const [timerSeconds, setTimerSeconds] = useState(
+        activity?.hasTimer && activity.timerMinutes
+            ? activity.timerMinutes * 60
+            : 0
+    );
+    const [timerRunning, setTimerRunning] = useState(false);
+
+    // Timer countdown
+    useEffect(() => {
+        if (!timerRunning || timerSeconds <= 0) return;
+        const interval = setInterval(() => {
+            setTimerSeconds((prev) => {
+                if (prev <= 1) {
+                    setTimerRunning(false);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [timerRunning, timerSeconds]);
+
+    if (!activity) return null;
+
+    const instructions = activity.instructions;
+    const step = instructions[currentStep];
+    const isFirst = currentStep === 0;
+    const isLast = currentStep === instructions.length - 1;
+    const accentColor =
+        activity.category === 'engineering' ? colors.engineering : colors.health;
+
+    const animateTransition = (direction: 'next' | 'back') => {
+        Animated.sequence([
+            Animated.timing(fadeAnim, {
+                toValue: 0,
+                duration: 150,
+                useNativeDriver: true,
+            }),
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 200,
+                useNativeDriver: true,
+            }),
+        ]).start();
+
+        setTimeout(() => {
+            if (direction === 'next') setCurrentStep((p) => p + 1);
+            else setCurrentStep((p) => p - 1);
+        }, 150);
+    };
+
+    const formatTime = (seconds: number) => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    };
+
+    return (
+        <>
+            <Stack.Screen
+                options={{
+                    headerShown: true,
+                    title: 'Instructions',
+                    headerStyle: { backgroundColor: colors.surface },
+                    headerTintColor: colors.text,
+                    headerRight: () => (
+                        <TouchableOpacity
+                            onPress={() => router.push('/help')}
+                            accessibilityLabel="Help"
+                            style={{ paddingLeft: 1.5, justifyContent: 'center', alignItems: 'center' }}
+                        >
+                            <Ionicons name="help-circle-outline" size={26} color={colors.text} />
+                        </TouchableOpacity>
+                    ),
+                }}
+            />
+            <View style={[styles.container, { backgroundColor: colors.background }]}>
+                {/* Timer Banner */}
+                {activity.hasTimer && (
+                    <View style={[styles.timerBanner, { backgroundColor: accentColor }]}>
+                        <Text style={styles.timerLabel}>⏱️ Time Remaining</Text>
+                        <Text style={styles.timerValue}>{formatTime(timerSeconds)}</Text>
+                        {!timerRunning && timerSeconds > 0 && (
+                            <TouchableOpacity
+                                style={styles.timerStartBtn}
+                                onPress={() => setTimerRunning(true)}
+                            >
+                                <Text style={styles.timerStartText}>Start Timer</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                )}
+
+                {/* Progress Indicator */}
+                <View style={styles.progressContainer}>
+                    {instructions.map((_, i) => (
+                        <View
+                            key={i}
+                            style={[
+                                styles.progressDot,
+                                {
+                                    backgroundColor:
+                                        i === currentStep
+                                            ? accentColor
+                                            : i < currentStep
+                                                ? accentColor + '60'
+                                                : colors.backgroundElement,
+                                },
+                            ]}
+                        />
+                    ))}
+                </View>
+
+                {/* Step Card */}
+                <View style={styles.stepCardContainer}>
+                    <Animated.View
+                        style={[
+                            styles.stepCard,
+                            {
+                                backgroundColor: colors.surface,
+                                opacity: fadeAnim,
+                            },
+                            Shadows.md,
+                        ]}
+                    >
+                        <View style={[styles.stepNumber, { backgroundColor: accentColor }]}>
+                            <Text style={styles.stepNumberText}>
+                                Step {step.step}
+                            </Text>
+                        </View>
+
+                        <Text style={[styles.stepText, { color: colors.text }]}>
+                            {step.text}
+                        </Text>
+
+                        {/* Sensor Activation Button */}
+                        {step.requiresSensor && (
+                            <TouchableOpacity
+                                style={[
+                                    styles.sensorButton,
+                                    { backgroundColor: colors.primary },
+                                    Shadows.md,
+                                ]}
+                                onPress={() => {
+                                    // Navigate to data recording
+                                    router.push(`/activity/${id}/record`);
+                                }}
+                                accessibilityLabel={step.sensorLabel || 'Activate sensor'}
+                                accessibilityRole="button"
+                            >
+                                <Text style={styles.sensorIcon}>📡</Text>
+                                <Text style={styles.sensorButtonText}>
+                                    {step.sensorLabel || 'Activate Sensor'}
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+                    </Animated.View>
+                </View>
+
+                {/* Navigation Buttons */}
+                <View style={[styles.navBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+                    <TouchableOpacity
+                        style={[
+                            styles.navButton,
+                            styles.backButton,
+                            {
+                                borderColor: colors.border,
+                                opacity: isFirst ? 0.4 : 1,
+                            },
+                        ]}
+                        onPress={() => !isFirst && animateTransition('back')}
+                        disabled={isFirst}
+                        accessibilityLabel="Previous step"
+                    >
+                        <Text style={[styles.navButtonText, { color: colors.text }]}>
+                            ← Back
+                        </Text>
+                    </TouchableOpacity>
+
+                    <Text style={[styles.stepCounter, { color: colors.textSecondary }]}>
+                        {currentStep + 1} / {instructions.length}
+                    </Text>
+
+                    {isLast ? (
+                        <TouchableOpacity
+                            style={[
+                                styles.navButton,
+                                styles.finishButton,
+                                { backgroundColor: colors.primary },
+                                Shadows.md,
+                            ]}
+                            onPress={() => router.push(`/activity/${id}/record`)}
+                            accessibilityLabel="Start recording data"
+                        >
+                            <Text style={[styles.navButtonText, { color: colors.onPrimary }]}>
+                                Record Data →
+                            </Text>
+                        </TouchableOpacity>
+                    ) : (
+                        <TouchableOpacity
+                            style={[
+                                styles.navButton,
+                                styles.nextButton,
+                                { backgroundColor: accentColor },
+                            ]}
+                            onPress={() => animateTransition('next')}
+                            accessibilityLabel="Next step"
+                        >
+                            <Text style={[styles.navButtonText, { color: '#FFFFFF' }]}>
+                                Next →
+                            </Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
+            </View>
+        </>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: { flex: 1 },
+    timerBanner: {
+        paddingVertical: Spacing.md,
+        paddingHorizontal: Spacing.xl,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: Spacing.sm,
+    },
+    timerLabel: { color: '#FFFFFF', fontSize: Typography.bodyMedium.fontSize },
+    timerValue: {
+        color: '#FFFFFF',
+        fontSize: Typography.titleLarge.fontSize,
+        fontWeight: '700',
+    },
+    timerStartBtn: {
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.xs,
+        borderRadius: BorderRadius.full,
+    },
+    timerStartText: {
+        color: '#FFFFFF',
+        fontSize: Typography.labelSmall.fontSize,
+        fontWeight: '600',
+    },
+    progressContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: Spacing.xs,
+        paddingVertical: Spacing.lg,
+    },
+    progressDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+    },
+    stepCardContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        paddingHorizontal: Spacing.xl,
+    },
+    stepCard: {
+        borderRadius: BorderRadius.xl,
+        padding: Spacing.xxl,
+        alignItems: 'center',
+    },
+    stepNumber: {
+        paddingHorizontal: Spacing.lg,
+        paddingVertical: Spacing.xs,
+        borderRadius: BorderRadius.full,
+        marginBottom: Spacing.xl,
+    },
+    stepNumberText: {
+        color: '#FFFFFF',
+        fontSize: Typography.labelLarge.fontSize,
+        fontWeight: '700',
+    },
+    stepText: {
+        fontSize: Typography.bodyLarge.fontSize,
+        lineHeight: 28,
+        textAlign: 'center',
+    },
+    sensorButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: Spacing.xxl,
+        paddingVertical: Spacing.lg,
+        borderRadius: BorderRadius.lg,
+        marginTop: Spacing.xxl,
+        gap: Spacing.sm,
+    },
+    sensorIcon: { fontSize: 20 },
+    sensorButtonText: {
+        color: '#FFFFFF',
+        fontSize: Typography.labelLarge.fontSize,
+        fontWeight: '700',
+    },
+    navBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: Spacing.lg,
+        paddingBottom: Spacing.xxl,
+        borderTopWidth: StyleSheet.hairlineWidth,
+    },
+    navButton: {
+        paddingHorizontal: Spacing.xl,
+        paddingVertical: Spacing.md,
+        borderRadius: BorderRadius.lg,
+    },
+    backButton: {
+        borderWidth: 1,
+    },
+    nextButton: {},
+    finishButton: {},
+    navButtonText: {
+        fontSize: Typography.labelLarge.fontSize,
+        fontWeight: '600',
+    },
+    stepCounter: {
+        fontSize: Typography.bodyMedium.fontSize,
+        fontWeight: '500',
+    },
+});
