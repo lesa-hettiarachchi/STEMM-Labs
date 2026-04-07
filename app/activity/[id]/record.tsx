@@ -48,6 +48,10 @@ export default function DataRecordingScreen() {
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    // Parachute-specific measurement inputs
+    const [dropHeight, setDropHeight] = useState('');
+    const [toyMass, setToyMass] = useState('');
+    const [contactTime, setContactTime] = useState('');
 
     const currentIteration = activityProgress[id]?.currentIteration ?? 1;
 
@@ -62,6 +66,18 @@ export default function DataRecordingScreen() {
 
     const accentColor =
         activity.category === 'engineering' ? colors.engineering : colors.health;
+
+    // Push parachute measurement params to session whenever they change
+    useEffect(() => {
+        if (id === 'parachute-drop') {
+            const h = parseFloat(dropHeight);
+            const m = parseFloat(toyMass);
+            const ct = parseFloat(contactTime);
+            if (!isNaN(h)) setCalcParam('distance', h);
+            if (!isNaN(m)) setCalcParam('mass', m);
+            if (!isNaN(ct)) setCalcParam('contactTime', ct);
+        }
+    }, [dropHeight, toyMass, contactTime, id]);
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -130,7 +146,7 @@ export default function DataRecordingScreen() {
                     <AccelSensor
                         mode={mode}
                         colors={colors}
-        accentColor={accentColor}
+                        accentColor={accentColor}
                         onReadingUpdate={() => {}}
                     />
                 );
@@ -207,6 +223,63 @@ export default function DataRecordingScreen() {
                         </Text>
                         {renderSensor()}
                     </View>
+
+                    {/* Parachute Measurement Inputs */}
+                    {id === 'parachute-drop' && (
+                        <View
+                            style={[
+                                styles.measureCard,
+                                { backgroundColor: colors.surface },
+                                Shadows.sm,
+                            ]}
+                        >
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                                📏 Measurements
+                            </Text>
+                            <View style={styles.inputRow}>
+                                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                                    Drop Height (m)
+                                </Text>
+                                <TextInput
+                                    style={[styles.measureInput, { backgroundColor: colors.backgroundElement, color: colors.text, borderColor: colors.border }]}
+                                    keyboardType="decimal-pad"
+                                    placeholder="e.g. 1.0"
+                                    placeholderTextColor={colors.textSecondary}
+                                    value={dropHeight}
+                                    onChangeText={setDropHeight}
+                                    accessibilityLabel="Drop height in metres"
+                                />
+                            </View>
+                            <View style={styles.inputRow}>
+                                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                                    Toy Mass (kg)
+                                </Text>
+                                <TextInput
+                                    style={[styles.measureInput, { backgroundColor: colors.backgroundElement, color: colors.text, borderColor: colors.border }]}
+                                    keyboardType="decimal-pad"
+                                    placeholder="e.g. 0.20"
+                                    placeholderTextColor={colors.textSecondary}
+                                    value={toyMass}
+                                    onChangeText={setToyMass}
+                                    accessibilityLabel="Toy mass in kilograms"
+                                />
+                            </View>
+                            <View style={styles.inputRow}>
+                                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                                    Contact Time (s) — from slow-motion
+                                </Text>
+                                <TextInput
+                                    style={[styles.measureInput, { backgroundColor: colors.backgroundElement, color: colors.text, borderColor: colors.border }]}
+                                    keyboardType="decimal-pad"
+                                    placeholder="e.g. 0.05"
+                                    placeholderTextColor={colors.textSecondary}
+                                    value={contactTime}
+                                    onChangeText={setContactTime}
+                                    accessibilityLabel="Contact time in seconds from slow-motion video"
+                                />
+                            </View>
+                        </View>
+                    )}
 
                     {/* Editable Data Table */}
                     <View
@@ -332,6 +405,26 @@ const styles = StyleSheet.create({
     },
     placeholderIcon: { fontSize: 48, marginBottom: Spacing.md },
     placeholderText: { fontSize: Typography.bodyMedium.fontSize, fontStyle: 'italic' },
+    measureCard: {
+        borderRadius: BorderRadius.xl,
+        padding: Spacing.lg,
+        marginBottom: Spacing.lg,
+    },
+    inputRow: {
+        marginBottom: Spacing.md,
+    },
+    inputLabel: {
+        fontSize: Typography.labelLarge.fontSize,
+        fontWeight: '500',
+        marginBottom: Spacing.xs,
+    },
+    measureInput: {
+        height: 44,
+        borderRadius: BorderRadius.md,
+        borderWidth: 1,
+        paddingHorizontal: Spacing.md,
+        fontSize: Typography.bodyLarge.fontSize,
+    },
     tableCard: {
         borderRadius: BorderRadius.xl,
         padding: Spacing.lg,

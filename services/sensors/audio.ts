@@ -115,12 +115,16 @@ export function createAudioService() {
       return Math.round((sum / readings.length) * 10) / 10;
     },
 
-    /** Get hearing risk level based on dB */
-    getHearingRisk(db: number): { level: string; color: string } {
-      if (db < 60) return { level: 'Safe', color: '#10B981' };
-      if (db < 85) return { level: 'Generally Safe', color: '#F59E0B' };
-      if (db < 100) return { level: 'Damage Possible', color: '#EF4444' };
-      return { level: 'Dangerous!', color: '#DC2626' };
+    /** Get hearing risk level based on dB — matches User Spec table */
+    getHearingRisk(db: number): { level: string; color: string; description: string } {
+      if (db < 30) return { level: 'No Risk', color: '#10B981', description: 'Whisper, quiet library' };
+      if (db < 60) return { level: 'Safe', color: '#10B981', description: 'Normal conversation, classroom' };
+      if (db < 85) return { level: 'Generally Safe', color: '#F59E0B', description: 'Busy traffic — fatigue possible with long exposure' };
+      if (db < 90) return { level: 'Damage Possible', color: '#F97316', description: 'Lawn mower, loud classroom' };
+      if (db < 100) return { level: 'Damage Likely', color: '#EF4444', description: 'Motorbike, power tools' };
+      if (db < 110) return { level: 'Serious Damage', color: '#DC2626', description: 'Nightclub, rock concert' };
+      if (db < 120) return { level: 'Painful!', color: '#B91C1C', description: 'Siren, car horn at 1m' };
+      return { level: 'Dangerous!', color: '#7F1D1D', description: 'Jet engine — immediate severe damage' };
     },
 
     clearReadings() {
