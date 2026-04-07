@@ -1,12 +1,13 @@
 /**
  * Data Recording Screen (Screen 8)
- * Sensor data capture placeholder — full sensor integration in Sprint 2
+ * Live sensor data + editable data table + save to Firestore
  */
 
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+    Alert,
     ScrollView,
     StyleSheet,
     Text,
@@ -15,24 +16,146 @@ import {
     View,
 } from 'react-native';
 
+import EditableDataTable from '@/components/activity/EditableDataTable';
+import AccelSensor from '@/components/sensors/AccelSensor';
+import ParachuteSensor from '@/components/sensors/ParachuteSensor';
+import ReactionSensor from '@/components/sensors/ReactionSensor';
+import SoundSensor from '@/components/sensors/SoundSensor';
 import { getActivityById } from '@/constants/activities';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
+import type { DataTableRow } from '@/constants/types';
+import { useActivity } from '@/context/ActivityContext';
 import { useSettings } from '@/context/SettingsContext';
+import { useTeam } from '@/context/TeamContext';
 
 export default function DataRecordingScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
     const { resolvedTheme } = useSettings();
+    const { team, activityProgress } = useTeam();
+    const {
+        session,
+        startSession,
+        setDataTableRows,
+        setRating: setSessionRating,
+        setComment: setSessionComment,
+        setCalcParam,
+        saveSession,
+    } = useActivity();
     const colors = Colors[resolvedTheme];
 
     const activity = getActivityById(id);
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+
+    const currentIteration = activityProgress[id]?.currentIteration ?? 1;
+
+    // Start session when screen mounts
+    useEffect(() => {
+        if (activity && !session) {
+            startSession(id, currentIteration);
+        }
+    }, [id, activity]);
 
     if (!activity) return null;
 
     const accentColor =
         activity.category === 'engineering' ? colors.engineering : colors.health;
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            setSessionRating(rating);
+            setSessionComment(comment);
+
+            const attempt = await saveSession();
+            if (attempt) {
+                router.push(`/activity/${id}/results`);
+            } else {
+                Alert.alert('Error', 'Failed to save. Please try again.');
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Something went wrong while saving.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // ─── Render sensor based on activity type ─────────────────────
+    const renderSensor = () => {
+        switch (activity.sensorType) {
+            case 'timer':
+                return (
+                    <ParachuteSensor
+                        colors={colors}
+                        accentColor={accentColor}
+                        onTimerResult={(seconds) => {
+                            setCalcParam('time', seconds);
+                        }}
+                    />
+                );
+
+            case 'microphone':
+                return (
+                    <SoundSensor
+                        colors={colors}
+                        accentColor={accentColor}
+                        onReadingUpdate={() => {}}
+                    />
+                );
+
+            case 'accelerometer': {
+                // Pick the right mode based on activity
+                let mode: 'angle' | 'vibration' | 'smoothness' | 'breathing';
+                if (id === 'hand_fan') mode = 'angle';
+                else if (id === 'earthquake') mode = 'vibration';
+                else if (id === 'human_performance') mode = 'smoothness';
+                else mode = 'breathing';
+
+                return (
+                    <AccelSensor
+                        mode={mode}
+                        colors={colors}
+                        accentColor={accentColor}
+                        onReadingUpdate={() => {}}
+                    />
+                );
+            }
+
+            case 'touchscreen':
+                return (
+                    <ReactionSensor
+                        colors={colors}
+                        accentColor={accentColor}
+                        members={team?.members ?? []}
+                        onComplete={(results) => {
+                            if (results.length > 0) {
+                                const avg = Math.round(
+                                    results.reduce((s, r) => s + r.reactionTimeMs, 0) /
+                                        results.length
+                                );
+                                const best = Math.min(
+                                    ...results.map((r) => r.reactionTimeMs)
+                                );
+                                setCalcParam('avgReaction', avg);
+                                setCalcParam('bestReaction', best);
+                            }
+                        }}
+                    />
+                );
+
+            default:
+                return (
+                    <View style={[styles.sensorPlaceholder, { backgroundColor: colors.backgroundElement }]}>
+                        <Text style={styles.placeholderIcon}>📡</Text>
+                        <Text style={[styles.placeholderText, { color: colors.textSecondary }]}>
+                            {activity.sensorLabel}
+                        </Text>
+                    </View>
+                );
+        }
+    };
 
     return (
         <>
@@ -66,29 +189,13 @@ export default function DataRecordingScreen() {
                             Shadows.md,
                         ]}
                     >
-                        <Text style={styles.sensorIcon}>📡</Text>
                         <Text style={[styles.sensorTitle, { color: colors.text }]}>
                             {activity.sensorLabel}
                         </Text>
-                        <Text style={[styles.sensorHint, { color: colors.textSecondary }]}>
-                            Sensor integration coming in Sprint 2
-                        </Text>
-                        <View
-                            style={[
-                                styles.measurementDisplay,
-                                { backgroundColor: colors.backgroundElement },
-                            ]}
-                        >
-                            <Text style={[styles.measurementLabel, { color: colors.textSecondary }]}>
-                                {activity.keyMeasurement}
-                            </Text>
-                            <Text style={[styles.measurementValue, { color: accentColor }]}>
-                                — —
-                            </Text>
-                        </View>
+                        {renderSensor()}
                     </View>
 
-                    {/* Data Table */}
+                    {/* Editable Data Table */}
                     <View
                         style={[
                             styles.tableCard,
@@ -99,40 +206,15 @@ export default function DataRecordingScreen() {
                         <Text style={[styles.sectionTitle, { color: colors.text }]}>
                             📋 Data Table
                         </Text>
-                        {/* Table Header */}
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                            <View>
-                                <View style={[styles.tableRow, { backgroundColor: accentColor + '15' }]}>
-                                    {activity.dataTable.columns.map((col) => (
-                                        <Text
-                                            key={col.key}
-                                            style={[styles.tableHeaderCell, { color: accentColor }]}
-                                        >
-                                            {col.label}
-                                        </Text>
-                                    ))}
-                                </View>
-                                {/* Table Rows */}
-                                {activity.dataTable.exampleRows.map((row, ri) => (
-                                    <View
-                                        key={ri}
-                                        style={[
-                                            styles.tableRow,
-                                            { borderBottomColor: colors.border },
-                                        ]}
-                                    >
-                                        {row.map((cell, ci) => (
-                                            <Text
-                                                key={ci}
-                                                style={[styles.tableCell, { color: colors.text }]}
-                                            >
-                                                {cell || '—'}
-                                            </Text>
-                                        ))}
-                                    </View>
-                                ))}
-                            </View>
-                        </ScrollView>
+                        <EditableDataTable
+                            columns={activity.dataTable.columns}
+                            initialRows={activity.dataTable.exampleRows}
+                            colors={colors}
+                            accentColor={accentColor}
+                            onDataChange={(rows: DataTableRow[]) => {
+                                setDataTableRows(rows);
+                            }}
+                        />
                     </View>
 
                     {/* Star Rating */}
@@ -195,14 +277,17 @@ export default function DataRecordingScreen() {
                     <TouchableOpacity
                         style={[
                             styles.saveButton,
-                            { backgroundColor: colors.primary },
+                            { backgroundColor: colors.primary, opacity: isSaving ? 0.6 : 1 },
                             Shadows.md,
                         ]}
-                        onPress={() => router.push(`/activity/${id}/results`)}
+                        onPress={handleSave}
+                        disabled={isSaving}
                         accessibilityLabel="Save and continue to results"
                         accessibilityRole="button"
                     >
-                        <Text style={styles.saveButtonText}>Save & Continue →</Text>
+                        <Text style={styles.saveButtonText}>
+                            {isSaving ? 'Saving...' : 'Save & Continue →'}
+                        </Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -218,35 +303,22 @@ const styles = StyleSheet.create({
     },
     sensorArea: {
         borderRadius: BorderRadius.xl,
-        padding: Spacing.xxl,
-        alignItems: 'center',
+        padding: Spacing.xl,
         marginBottom: Spacing.lg,
     },
-    sensorIcon: { fontSize: 48, marginBottom: Spacing.md },
     sensorTitle: {
         fontSize: Typography.titleMedium.fontSize,
         fontWeight: '600',
+        marginBottom: Spacing.lg,
+        textAlign: 'center',
     },
-    sensorHint: {
-        fontSize: Typography.bodyMedium.fontSize,
-        marginTop: Spacing.xs,
-        fontStyle: 'italic',
-    },
-    measurementDisplay: {
-        width: '100%',
-        padding: Spacing.xl,
+    sensorPlaceholder: {
+        padding: Spacing.xxl,
         borderRadius: BorderRadius.lg,
         alignItems: 'center',
-        marginTop: Spacing.xl,
     },
-    measurementLabel: {
-        fontSize: Typography.bodyMedium.fontSize,
-        marginBottom: Spacing.xs,
-    },
-    measurementValue: {
-        fontSize: Typography.displayLarge.fontSize,
-        fontWeight: '700',
-    },
+    placeholderIcon: { fontSize: 48, marginBottom: Spacing.md },
+    placeholderText: { fontSize: Typography.bodyMedium.fontSize, fontStyle: 'italic' },
     tableCard: {
         borderRadius: BorderRadius.xl,
         padding: Spacing.lg,
@@ -256,22 +328,6 @@ const styles = StyleSheet.create({
         fontSize: Typography.titleMedium.fontSize,
         fontWeight: '600',
         marginBottom: Spacing.md,
-    },
-    tableRow: {
-        flexDirection: 'row',
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: 'rgba(0,0,0,0.05)',
-    },
-    tableHeaderCell: {
-        width: 140,
-        padding: Spacing.sm,
-        fontSize: Typography.labelSmall.fontSize,
-        fontWeight: '600',
-    },
-    tableCell: {
-        width: 140,
-        padding: Spacing.sm,
-        fontSize: Typography.bodyMedium.fontSize,
     },
     ratingCard: {
         borderRadius: BorderRadius.xl,

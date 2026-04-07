@@ -9,6 +9,7 @@ import React from 'react';
 
 import { SettingsProvider, useSettings } from '@/context/SettingsContext';
 import { TeamProvider } from '@/context/TeamContext';
+import { ActivityProvider } from '@/context/ActivityContext';
 import { Colors } from '@/constants/theme';
 
 function RootStack() {
@@ -70,7 +71,9 @@ export default function RootLayout() {
   return (
     <SettingsProvider>
       <TeamProvider>
-        <RootStack />
+        <ActivityProvider>
+          <RootStack />
+        </ActivityProvider>
       </TeamProvider>
     </SettingsProvider>
   );

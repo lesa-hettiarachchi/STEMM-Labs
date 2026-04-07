@@ -1,11 +1,11 @@
 /**
  * Results & Reflection Screen (Screen 9)
- * Displays results summary, iteration comparison, and next actions
+ * Shows calculated results from sensor data + formulas
  */
 
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -16,14 +16,17 @@ import {
 
 import { getActivityById } from '@/constants/activities';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
+import { useActivity } from '@/context/ActivityContext';
 import { useSettings } from '@/context/SettingsContext';
 import { useTeam } from '@/context/TeamContext';
+import { calculateActivityResults, CalculationResult } from '@/services/calculations';
 
 export default function ResultsScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
     const { resolvedTheme } = useSettings();
     const { activityProgress } = useTeam();
+    const { session, clearSession } = useActivity();
     const colors = Colors[resolvedTheme];
 
     const activity = getActivityById(id);
@@ -34,6 +37,29 @@ export default function ResultsScreen() {
     const canIterate = currentIteration < activity.maxIterations;
     const accentColor =
         activity.category === 'engineering' ? colors.engineering : colors.health;
+
+    // Run calculations using session data
+    const calculatedResults: CalculationResult[] = useMemo(() => {
+        const params = session?.calcParams ?? {};
+
+        // For sound activity, extract dB readings
+        const dbReadings =
+            id === 'sound_pollution' && session?.sensorReadings
+                ? session.sensorReadings.map((r) => r.value)
+                : undefined;
+
+        return calculateActivityResults(id, params, dbReadings);
+    }, [id, session]);
+
+    const handleReturnHome = () => {
+        clearSession();
+        router.replace('/(tabs)');
+    };
+
+    const handleIterate = () => {
+        clearSession();
+        router.push(`/activity/${id}/instructions`);
+    };
 
     return (
         <>
@@ -73,46 +99,112 @@ export default function ResultsScreen() {
                         </Text>
                     </View>
 
-                    {/* Calculations Placeholder */}
+                    {/* Calculated Results */}
                     <View style={[styles.section, { backgroundColor: colors.surface }, Shadows.sm]}>
                         <Text style={[styles.sectionTitle, { color: colors.text }]}>
                             🧮 Calculated Results
                         </Text>
-                        {activity.formulas.length > 0 ? (
-                            activity.formulas.map((formula, i) => (
-                                <View key={i} style={styles.formulaRow}>
-                                    <Text style={[styles.formulaName, { color: colors.text }]}>
-                                        {formula.name}
+                        {calculatedResults.length > 0 ? (
+                            calculatedResults.map((result, i) => (
+                                <View key={i} style={[styles.resultRow, { borderBottomColor: colors.border }]}>
+                                    <Text style={[styles.resultName, { color: colors.text }]}>
+                                        {result.name}
                                     </Text>
-                                    <Text
-                                        style={[
-                                            styles.formulaValue,
-                                            { color: colors.textSecondary },
-                                        ]}
-                                    >
-                                        {formula.formula}
-                                    </Text>
-                                    {formula.example && (
-                                        <Text
-                                            style={[
-                                                styles.formulaExample,
-                                                {
-                                                    color: accentColor,
-                                                    backgroundColor: accentColor + '10',
-                                                },
-                                            ]}
-                                        >
-                                            Example: {formula.example}
+                                    <View style={styles.resultValueRow}>
+                                        <Text style={[styles.resultValue, { color: accentColor }]}>
+                                            {result.value}
                                         </Text>
-                                    )}
+                                        <Text style={[styles.resultUnit, { color: colors.textSecondary }]}>
+                                            {result.unit}
+                                        </Text>
+                                    </View>
+                                    <Text style={[styles.resultFormula, { color: colors.textSecondary }]}>
+                                        {result.formula}
+                                    </Text>
                                 </View>
                             ))
                         ) : (
-                            <Text style={[styles.bodyText, { color: colors.textSecondary }]}>
-                                Results are based on sensor measurements from your experiment.
-                            </Text>
+                            activity.formulas.length > 0 ? (
+                                activity.formulas.map((formula, i) => (
+                                    <View key={i} style={styles.formulaRow}>
+                                        <Text style={[styles.formulaName, { color: colors.text }]}>
+                                            {formula.name}
+                                        </Text>
+                                        <Text
+                                            style={[
+                                                styles.formulaValue,
+                                                { color: colors.textSecondary },
+                                            ]}
+                                        >
+                                            {formula.formula}
+                                        </Text>
+                                        {formula.example && (
+                                            <Text
+                                                style={[
+                                                    styles.formulaExample,
+                                                    {
+                                                        color: accentColor,
+                                                        backgroundColor: accentColor + '10',
+                                                    },
+                                                ]}
+                                            >
+                                                Example: {formula.example}
+                                            </Text>
+                                        )}
+                                    </View>
+                                ))
+                            ) : (
+                                <Text style={[styles.bodyText, { color: colors.textSecondary }]}>
+                                    Record sensor data to see calculated results.
+                                </Text>
+                            )
                         )}
                     </View>
+
+                    {/* Session Summary */}
+                    {session && (
+                        <View style={[styles.section, { backgroundColor: colors.surface }, Shadows.sm]}>
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                                📊 Session Summary
+                            </Text>
+                            <View style={styles.summaryGrid}>
+                                <SummaryItem
+                                    label="Sensor Readings"
+                                    value={`${session.sensorReadings.length}`}
+                                    colors={colors}
+                                    accentColor={accentColor}
+                                />
+                                <SummaryItem
+                                    label="Data Rows"
+                                    value={`${session.dataTableRows.length}`}
+                                    colors={colors}
+                                    accentColor={accentColor}
+                                />
+                                <SummaryItem
+                                    label="Rating"
+                                    value={session.rating > 0 ? `${'⭐'.repeat(session.rating)}` : '—'}
+                                    colors={colors}
+                                    accentColor={accentColor}
+                                />
+                                <SummaryItem
+                                    label="Duration"
+                                    value={session.startedAt ? `${Math.round((Date.now() - session.startedAt) / 60000)} min` : '—'}
+                                    colors={colors}
+                                    accentColor={accentColor}
+                                />
+                            </View>
+                            {session.comment ? (
+                                <View style={[styles.commentBox, { backgroundColor: colors.backgroundElement }]}>
+                                    <Text style={[styles.commentLbl, { color: colors.textSecondary }]}>
+                                        💬 Reflection
+                                    </Text>
+                                    <Text style={[styles.commentTxt, { color: colors.text }]}>
+                                        {session.comment}
+                                    </Text>
+                                </View>
+                            ) : null}
+                        </View>
+                    )}
 
                     {/* Write-Up Prompts */}
                     <View style={[styles.section, { backgroundColor: colors.surface }, Shadows.sm]}>
@@ -164,7 +256,7 @@ export default function ResultsScreen() {
                                 { backgroundColor: accentColor },
                                 Shadows.md,
                             ]}
-                            onPress={() => router.push(`/activity/${id}/instructions`)}
+                            onPress={handleIterate}
                             accessibilityLabel="Iterate again"
                             accessibilityRole="button"
                         >
@@ -179,7 +271,7 @@ export default function ResultsScreen() {
                                 { backgroundColor: colors.primary },
                                 Shadows.md,
                             ]}
-                            onPress={() => router.replace('/(tabs)')}
+                            onPress={handleReturnHome}
                             accessibilityLabel="Return to home screen"
                             accessibilityRole="button"
                         >
@@ -191,6 +283,37 @@ export default function ResultsScreen() {
         </>
     );
 }
+
+function SummaryItem({
+    label,
+    value,
+    colors,
+    accentColor,
+}: {
+    label: string;
+    value: string;
+    colors: Record<string, string>;
+    accentColor: string;
+}) {
+    return (
+        <View style={[summaryStyles.item, { backgroundColor: colors.backgroundElement }]}>
+            <Text style={[summaryStyles.label, { color: colors.textSecondary }]}>{label}</Text>
+            <Text style={[summaryStyles.value, { color: accentColor }]}>{value}</Text>
+        </View>
+    );
+}
+
+const summaryStyles = StyleSheet.create({
+    item: {
+        flex: 1,
+        padding: Spacing.md,
+        borderRadius: BorderRadius.md,
+        alignItems: 'center',
+        minWidth: '45%',
+    },
+    label: { fontSize: Typography.labelSmall.fontSize, marginBottom: 2 },
+    value: { fontSize: Typography.titleMedium.fontSize, fontWeight: '600' },
+});
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
@@ -226,6 +349,33 @@ const styles = StyleSheet.create({
         fontSize: Typography.bodyLarge.fontSize,
         lineHeight: 24,
     },
+    resultRow: {
+        paddingVertical: Spacing.md,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    resultName: {
+        fontSize: Typography.labelLarge.fontSize,
+        fontWeight: '600',
+        marginBottom: Spacing.xxs,
+    },
+    resultValueRow: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        gap: Spacing.xs,
+        marginBottom: Spacing.xxs,
+    },
+    resultValue: {
+        fontSize: Typography.titleLarge.fontSize,
+        fontWeight: '700',
+    },
+    resultUnit: {
+        fontSize: Typography.bodyMedium.fontSize,
+    },
+    resultFormula: {
+        fontSize: Typography.bodySmall.fontSize,
+        fontFamily: 'monospace',
+        marginTop: Spacing.xxs,
+    },
     formulaRow: {
         marginBottom: Spacing.lg,
     },
@@ -244,6 +394,24 @@ const styles = StyleSheet.create({
         padding: Spacing.sm,
         borderRadius: BorderRadius.sm,
         overflow: 'hidden',
+    },
+    summaryGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: Spacing.sm,
+    },
+    commentBox: {
+        marginTop: Spacing.md,
+        padding: Spacing.md,
+        borderRadius: BorderRadius.md,
+    },
+    commentLbl: {
+        fontSize: Typography.labelSmall.fontSize,
+        marginBottom: Spacing.xxs,
+    },
+    commentTxt: {
+        fontSize: Typography.bodyMedium.fontSize,
+        lineHeight: 20,
     },
     promptRow: {
         flexDirection: 'row',
