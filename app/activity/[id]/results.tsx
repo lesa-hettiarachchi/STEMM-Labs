@@ -44,7 +44,7 @@ export default function ResultsScreen() {
 
         // For sound activity, extract dB readings
         const dbReadings =
-            id === 'sound_pollution' && session?.sensorReadings
+            id === 'sound-pollution' && session?.sensorReadings
                 ? session.sensorReadings.map((r) => r.value)
                 : undefined;
 

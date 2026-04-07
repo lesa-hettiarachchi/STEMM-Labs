@@ -79,17 +79,17 @@ export function useSensorData(activityId: string): SensorData {
           // Pick the reading type based on activity
           let value: number;
           let unit: string;
-          if (activityId === 'hand_fan') {
+          if (activityId === 'hand-fan') {
             value = reading.bendAngleDeg;
             unit = '°';
-          } else if (activityId === 'breathing') {
+          } else if (activityId === 'breathing-pace') {
             value = reading.z; // z-axis for chest movement
             unit = 'g';
-          } else if (activityId === 'human_performance') {
+          } else if (activityId === 'human-performance') {
             value = reading.vibrationMagnitude;
             unit = 'm/s²';
           } else {
-            // earthquake
+            // earthquake-structure
             value = reading.vibrationAmplitudeMm;
             unit = 'mm';
           }

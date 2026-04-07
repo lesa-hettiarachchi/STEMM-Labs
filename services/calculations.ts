@@ -173,7 +173,7 @@ export function calculateActivityResults(
   dbReadings?: number[]
 ): CalculationResult[] {
   switch (activityId) {
-    case 'parachute': {
+    case 'parachute-drop': {
       const d = params.distance ?? 0;
       const t = params.time ?? 0;
       const m = params.mass ?? 0;
@@ -189,7 +189,7 @@ export function calculateActivityResults(
       return [vel, acc, nf, w, df, gf];
     }
 
-    case 'sound_pollution': {
+    case 'sound-pollution': {
       const readings = dbReadings ?? [];
       const avg = averageDb(readings);
       const peak = {
@@ -201,13 +201,13 @@ export function calculateActivityResults(
       return [avg, peak];
     }
 
-    case 'hand_fan': {
+    case 'hand-fan': {
       const k = params.springConstant ?? 0.05;
       const theta = params.angle ?? 0;
       return [handFanForce(k, theta)];
     }
 
-    case 'earthquake': {
+    case 'earthquake-structure': {
       const peakAmplitude = {
         name: 'Peak Vibration Amplitude',
         value: params.peakAmplitude ?? 0,
@@ -217,7 +217,7 @@ export function calculateActivityResults(
       return [peakAmplitude];
     }
 
-    case 'human_performance': {
+    case 'human-performance': {
       const d = params.distance ?? 0;
       const t = params.time ?? 0;
       const speed = movementSpeed(d, t);
@@ -230,7 +230,7 @@ export function calculateActivityResults(
       return [speed, smoothness];
     }
 
-    case 'reaction_board': {
+    case 'reaction-board': {
       return [
         {
           name: 'Average Reaction Time',
@@ -247,7 +247,7 @@ export function calculateActivityResults(
       ];
     }
 
-    case 'breathing': {
+    case 'breathing-pace': {
       const peaks = params.peaks ?? 0;
       const duration = params.duration ?? 60;
       return [breathsPerMinute(peaks, duration)];

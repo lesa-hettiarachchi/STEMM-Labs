@@ -85,6 +85,19 @@ export default function DataRecordingScreen() {
     // ─── Render sensor based on activity type ─────────────────────
     const renderSensor = () => {
         switch (activity.sensorType) {
+            case 'camera':
+                // Parachute uses camera for slow-motion video, but also needs a timer
+                // for measuring drop time. Show the timer here; camera is separate screen.
+                return (
+                    <ParachuteSensor
+                        colors={colors}
+                        accentColor={accentColor}
+                        onTimerResult={(seconds) => {
+                            setCalcParam('time', seconds);
+                        }}
+                    />
+                );
+
             case 'timer':
                 return (
                     <ParachuteSensor
@@ -106,18 +119,18 @@ export default function DataRecordingScreen() {
                 );
 
             case 'accelerometer': {
-                // Pick the right mode based on activity
+                // Pick the right mode based on activity ID (IDs use hyphens)
                 let mode: 'angle' | 'vibration' | 'smoothness' | 'breathing';
-                if (id === 'hand_fan') mode = 'angle';
-                else if (id === 'earthquake') mode = 'vibration';
-                else if (id === 'human_performance') mode = 'smoothness';
-                else mode = 'breathing';
+                if (id === 'hand-fan') mode = 'angle';
+                else if (id === 'earthquake-structure') mode = 'vibration';
+                else if (id === 'human-performance') mode = 'smoothness';
+                else mode = 'breathing'; // breathing-pace
 
                 return (
                     <AccelSensor
                         mode={mode}
                         colors={colors}
-                        accentColor={accentColor}
+        accentColor={accentColor}
                         onReadingUpdate={() => {}}
                     />
                 );

@@ -14,10 +14,14 @@ export interface AudioReading {
   timestamp: number;
 }
 
-// Rough offset: dBFS of -160 ≈ silence, -40 ≈ very loud
-// Environmental dB roughly maps: 0 dB (silence) to 130+ dB (pain)
-// Approximation: envDb ≈ dBFS + 160 (clamped 0–130)
-const DBFS_OFFSET = 160;
+// Rough offset to approximate environmental dB from dBFS.
+// Expo AV metering returns dBFS where 0 = max input, negative = quieter.
+// Typical device readings:
+//   Quiet room: -50 to -60 dBFS → should be ~40-50 dB environmental
+//   Conversation: -25 to -35 dBFS → should be ~65-75 dB
+//   Loud noise: -10 dBFS → should be ~90 dB
+// Using offset of 100 gives the most realistic mapping.
+const DBFS_OFFSET = 100;
 
 export function createAudioService() {
   let recording: Audio.Recording | null = null;
