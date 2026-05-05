@@ -1,11 +1,23 @@
 /**
  * Sound Sensor Display (Activity 2)
  * Live dB meter bar with peak indicator, risk level, and save-per-action snapshot
+ * Uses expo-audio (replaces deprecated expo-av)
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View, Text, Animated, TouchableOpacity } from 'react-native';
-import { createAudioService, AudioReading } from '@/services/sensors/audio';
+import { Alert, StyleSheet, View, Text, Animated, TouchableOpacity } from 'react-native';
+import {
+  useAudioRecorder,
+  useAudioRecorderState,
+  AudioModule,
+  RecordingPresets,
+  setAudioModeAsync,
+} from 'expo-audio';
+import {
+  convertToEnvironmentalDb,
+  getHearingRisk,
+  type AudioReading,
+} from '@/services/sensors/audio';
 import { Spacing, BorderRadius, Typography } from '@/constants/theme';
 
 interface SavedReading {
@@ -23,41 +35,65 @@ interface Props {
 }
 
 export default function SoundSensor({ colors, accentColor, onReadingUpdate, onSaveReading }: Props) {
-  const audioRef = useRef(createAudioService());
+  const audioRecorder = useAudioRecorder({
+    ...RecordingPresets.HIGH_QUALITY,
+    isMeteringEnabled: true,
+  });
+  const recorderState = useAudioRecorderState(audioRecorder, 200);
+
   const [isActive, setIsActive] = useState(false);
   const [currentDb, setCurrentDb] = useState(0);
   const [peakDb, setPeakDb] = useState(0);
-  const [riskLevel, setRiskLevel] = useState({ level: 'Safe', color: '#10B981', description: '' });
+  const [riskLevel, setRiskLevel] = useState(getHearingRisk(0));
   const [savedReadings, setSavedReadings] = useState<SavedReading[]>([]);
   const barWidth = useRef(new Animated.Value(0)).current;
 
+  // Request mic permission on mount
   useEffect(() => {
-    return () => { audioRef.current.cleanup(); };
+    (async () => {
+      const status = await AudioModule.requestRecordingPermissionsAsync();
+      if (!status.granted) {
+        Alert.alert('Permission Denied', 'Microphone permission is required for sound measurement.');
+      }
+    })();
   }, []);
 
+  // Process metering data from recorder state
+  useEffect(() => {
+    if (!isActive || recorderState.metering === undefined) return;
+
+    const dbFS = recorderState.metering;
+    const approxDb = convertToEnvironmentalDb(dbFS);
+    const roundedDb = Math.round(approxDb);
+
+    setCurrentDb(roundedDb);
+    if (roundedDb > peakDb) setPeakDb(roundedDb);
+    setRiskLevel(getHearingRisk(roundedDb));
+
+    const reading: AudioReading = { dbFS, approxDb, timestamp: Date.now() };
+    onReadingUpdate(reading);
+
+    // Animate bar width (0–130 dB scale → 0–100%)
+    const pct = Math.min(approxDb / 130, 1);
+    Animated.spring(barWidth, {
+      toValue: pct,
+      tension: 80,
+      friction: 12,
+      useNativeDriver: false,
+    }).start();
+  }, [recorderState.metering, isActive]);
+
   const handleToggle = async () => {
-    const audio = audioRef.current;
     if (isActive) {
-      await audio.stop();
+      await audioRecorder.stop();
       setIsActive(false);
     } else {
-      audio.setOnReading((reading) => {
-        setCurrentDb(Math.round(reading.approxDb));
-        const peak = audio.getPeakDb();
-        setPeakDb(peak);
-        setRiskLevel(audio.getHearingRisk(reading.approxDb));
-        onReadingUpdate(reading);
-
-        // Animate bar width (0–130 dB scale → 0–100%)
-        const pct = Math.min(reading.approxDb / 130, 1);
-        Animated.spring(barWidth, {
-          toValue: pct,
-          tension: 80,
-          friction: 12,
-          useNativeDriver: false,
-        }).start();
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        allowsRecording: true,
       });
-      await audio.start(200);
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
       setIsActive(true);
     }
   };

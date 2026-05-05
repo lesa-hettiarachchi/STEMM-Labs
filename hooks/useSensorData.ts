@@ -2,13 +2,16 @@
  * useSensorData — Unified sensor hook per activity
  * Selects the correct sensor service based on activityId,
  * returns a unified API for starting/stopping + collecting readings.
+ *
+ * Note: Microphone/audio is handled directly by the SoundSensor component
+ * using expo-audio hooks — not through this hook.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getActivityById } from '@/constants/activities';
 import type { SensorReading } from '@/constants/types';
 import { createAccelerometerService, AccelerometerReading } from '@/services/sensors/accelerometer';
-import { createAudioService, AudioReading } from '@/services/sensors/audio';
+import type { AudioReading } from '@/services/sensors/audio';
 import { createTimer, TimerState } from '@/services/sensors/timer';
 
 export interface SensorData {
@@ -50,19 +53,17 @@ export function useSensorData(activityId: string): SensorData {
   const [readings, setReadings] = useState<SensorReading[]>([]);
   const [currentReading, setCurrentReading] = useState<SensorReading | null>(null);
   const [rawAccel, setRawAccel] = useState<AccelerometerReading | null>(null);
-  const [rawAudio, setRawAudio] = useState<AudioReading | null>(null);
+  const [rawAudio] = useState<AudioReading | null>(null);
   const [timerState, setTimerState] = useState<TimerState | null>(null);
   const [peakValue, setPeakValue] = useState(0);
 
   const accelRef = useRef(createAccelerometerService());
-  const audioRef = useRef(createAudioService());
   const timerRef = useRef(createTimer());
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       accelRef.current.cleanup();
-      audioRef.current.cleanup();
       timerRef.current.cleanup();
     };
   }, []);
@@ -76,7 +77,7 @@ export function useSensorData(activityId: string): SensorData {
         accel.setOnReading((reading) => {
           setRawAccel(reading);
 
-          // Pick the reading type based on activity
+          // Pick the reading type based on activity ID (IDs use hyphens)
           let value: number;
           let unit: string;
           if (activityId === 'hand-fan') {
@@ -102,17 +103,9 @@ export function useSensorData(activityId: string): SensorData {
         break;
       }
 
-      case 'microphone': {
-        const audio = audioRef.current;
-        audio.setOnReading((reading) => {
-          setRawAudio(reading);
-          const sr = toSensorReading('microphone', reading.approxDb, 'dB');
-          setCurrentReading(sr);
-          if (reading.approxDb > peakValue) setPeakValue(reading.approxDb);
-        });
-        await audio.start(200);
+      case 'microphone':
+        // Audio recording is handled by the SoundSensor component directly
         break;
-      }
 
       case 'timer': {
         const timer = timerRef.current;
@@ -142,9 +135,6 @@ export function useSensorData(activityId: string): SensorData {
       case 'accelerometer':
         accelRef.current.stop();
         break;
-      case 'microphone':
-        audioRef.current.stop();
-        break;
       case 'timer':
         timerRef.current.stop();
         break;
@@ -162,7 +152,6 @@ export function useSensorData(activityId: string): SensorData {
     setCurrentReading(null);
     setPeakValue(0);
     accelRef.current.clearReadings();
-    audioRef.current.clearReadings();
     timerRef.current.reset();
     setTimerState(null);
   }, []);

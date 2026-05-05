@@ -14,11 +14,12 @@
  * - Storage → Get started → Start in test mode
  */
 
-// CHANGE: Use standard 'firebase' imports instead of '@react-native-firebase'
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously } from 'firebase/auth';
+// @ts-ignore — getReactNativePersistence exists in RN bundle but not in web type defs
+import { initializeAuth, getReactNativePersistence, signInAnonymously } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
     apiKey: 'YOUR_API_KEY',
@@ -29,10 +30,14 @@ const firebaseConfig = {
     appId: 'YOUR_APP_ID',
 };
 
-// initializeApp is synchronous in the Web SDK, so no Promise errors here.
 const app = initializeApp(firebaseConfig);
 
-export const auth = getAuth(app);
+// Use initializeAuth with AsyncStorage persistence to persist auth state
+// across sessions. This fixes the warning about memory-only persistence.
+export const auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage),
+});
+
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 
