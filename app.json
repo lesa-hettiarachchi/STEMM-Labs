@@ -40,7 +40,34 @@
           }
         }
       ],
-      "expo-audio"
+      "expo-audio",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#1A9B7B",
+          "defaultChannel": "stemm-alerts"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "STEMM Labs uses your location to tag where science activities are completed.",
+          "locationAlwaysAndWhenInUsePermission": "STEMM Labs uses your location to tag where science activities are completed."
+        }
+      ],
+      "expo-sqlite",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "android": {
+            "app_id": "ca-app-pub-3940256099942544~3347511713"
+          },
+          "ios": {
+            "app_id": "ca-app-pub-3940256099942544~1458002511"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
