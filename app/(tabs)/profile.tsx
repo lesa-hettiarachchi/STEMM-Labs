@@ -6,6 +6,7 @@
 import { ThemedText as Text } from '@/components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
+import { batteryColor, batteryIcon, useBattery } from '@/hooks/useBattery';
 import {
     Alert,
     Image,
@@ -26,6 +27,7 @@ export default function ProfileScreen() {
     const { team, activityProgress, updateTeam } = useTeam();
     const { resolvedTheme } = useSettings();
     const colors = Colors[resolvedTheme];
+    const battery = useBattery();
     const [isEditing, setIsEditing] = useState(false);
     const [editSchool, setEditSchool] = useState(team?.schoolName ?? '');
     const [editMembers, setEditMembers] = useState<string[]>(
@@ -110,6 +112,44 @@ export default function ProfileScreen() {
                         colors={colors}
                     />
                 </View>
+
+                {/* Battery Card */}
+                {battery.isLoaded && (
+                    <View style={[styles.batteryCard, { backgroundColor: colors.surface }, Shadows.sm]}>
+                        <Text style={[styles.batteryIcon]}>
+                            {batteryIcon(battery.level, battery.isCharging)}
+                        </Text>
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.batteryLabel, { color: colors.textSecondary }]}>
+                                Device Battery
+                            </Text>
+                            <View style={styles.batteryBarTrack}>
+                                <View
+                                    style={[
+                                        styles.batteryBarFill,
+                                        {
+                                            width: `${Math.round((battery.level ?? 0) * 100)}%` as any,
+                                            backgroundColor: batteryColor(battery.level),
+                                        },
+                                    ]}
+                                />
+                            </View>
+                        </View>
+                        <Text style={[
+                            styles.batteryPct,
+                            { color: batteryColor(battery.level) },
+                        ]}>
+                            {battery.level !== null
+                                ? `${Math.round(battery.level * 100)}%`
+                                : '—'}
+                        </Text>
+                        {battery.isCharging && (
+                            <Text style={[styles.chargingBadge, { color: colors.statusCompleted }]}>
+                                Charging
+                            </Text>
+                        )}
+                    </View>
+                )}
 
                 {/* Info Card */}
                 <View style={[styles.infoCard, { backgroundColor: colors.surface }, Shadows.sm]}>
@@ -313,6 +353,39 @@ const styles = StyleSheet.create({
     statLabel: {
         fontSize: Typography.labelSmall.fontSize,
         marginTop: Spacing.xxs,
+    },
+    batteryCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderRadius: BorderRadius.lg,
+        padding: Spacing.lg,
+        marginBottom: Spacing.lg,
+        gap: Spacing.md,
+    },
+    batteryIcon: { fontSize: 24 },
+    batteryLabel: {
+        fontSize: Typography.labelSmall.fontSize,
+        marginBottom: Spacing.xs,
+    },
+    batteryBarTrack: {
+        height: 8,
+        backgroundColor: '#E5E7EB',
+        borderRadius: BorderRadius.full,
+        overflow: 'hidden',
+    },
+    batteryBarFill: {
+        height: 8,
+        borderRadius: BorderRadius.full,
+    },
+    batteryPct: {
+        fontSize: Typography.titleMedium.fontSize,
+        fontWeight: '700',
+        minWidth: 48,
+        textAlign: 'right',
+    },
+    chargingBadge: {
+        fontSize: Typography.labelSmall.fontSize,
+        fontWeight: '600',
     },
     infoCard: {
         borderRadius: BorderRadius.xl,

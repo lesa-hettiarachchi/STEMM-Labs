@@ -70,6 +70,14 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="map"
+        options={{
+          title: 'Map',
+          tabBarIcon: ({ size, color }) => <Ionicons name="map" size={size} color={color} />,
+          headerTitle: 'Activity Map',
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',

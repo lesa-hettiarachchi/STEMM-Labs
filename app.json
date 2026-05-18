@@ -20,7 +20,18 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "package": "com.stemmlabs.app"
     },
     "web": {
       "output": "static",
@@ -60,18 +71,27 @@
       [
         "react-native-google-mobile-ads",
         {
-          "android": {
-            "app_id": "ca-app-pub-3940256099942544~3347511713"
-          },
-          "ios": {
-            "app_id": "ca-app-pub-3940256099942544~1458002511"
-          }
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0f0b840c-317b-43c6-bc2f-f361b719cbde"
+      }
+    },
+    "owner": "lesa-hettiarachchi",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/0f0b840c-317b-43c6-bc2f-f361b719cbde"
     }
   }
 }

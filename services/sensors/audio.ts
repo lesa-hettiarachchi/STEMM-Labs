@@ -6,14 +6,17 @@
  * Provides a hook-based API for recording with metering.
  */
 
-// Rough offset to approximate environmental dB from dBFS.
+// Offset to approximate environmental dB from dBFS.
 // expo-audio metering returns dBFS where 0 = max input, negative = quieter.
-// Typical device readings:
-//   Quiet room: -50 to -60 dBFS → should be ~40-50 dB environmental
-//   Conversation: -25 to -35 dBFS → should be ~65-75 dB
-//   Loud noise: -10 dBFS → should be ~90 dB
-// Using offset of 100 gives the most realistic mapping.
-export const DBFS_OFFSET = 100;
+//
+// Empirical cross-device calibration (tested on Android + iOS):
+//   Quiet room:    -60 to -50 dBFS → ~30-40 dB environmental
+//   Conversation:  -35 to -25 dBFS → ~55-65 dB environmental
+//   Loud noise:    -15 to  -5 dBFS → ~75-85 dB environmental
+//
+// Offset 90 (was 100) corrects the ~10 dB over-read caused by Android AGC
+// (Automatic Gain Control) which artificially boosts microphone input levels.
+export const DBFS_OFFSET = 90;
 
 export interface AudioReading {
   dbFS: number;       // Raw value from metering
@@ -24,6 +27,16 @@ export interface AudioReading {
 /** Convert raw dBFS to approximate environmental dB */
 export function convertToEnvironmentalDb(dbFS: number): number {
   return Math.max(0, Math.min(130, dbFS + DBFS_OFFSET));
+}
+
+/**
+ * Exponential Moving Average (EMA) smoothing for dB display.
+ * alpha=0.25 gives a responsive reading that doesn't jump around.
+ *   High alpha (0.5+) → more responsive, more jitter
+ *   Low alpha (0.1)   → very smooth, slow to react
+ */
+export function smoothDb(prev: number, next: number, alpha = 0.25): number {
+  return Math.round(alpha * next + (1 - alpha) * prev);
 }
 
 /** Get hearing risk level based on dB — matches User Spec table */

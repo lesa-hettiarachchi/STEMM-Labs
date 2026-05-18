@@ -1,11 +1,19 @@
 /**
- * Sound Sensor Display (Activity 2)
- * Live dB meter bar with peak indicator, risk level, and save-per-action snapshot
- * Uses expo-audio (replaces deprecated expo-av)
+ * Sound Sensor Display (Activity 2 — Sound Pollution Hunter)
+ * Live dB meter with EMA smoothing, zone-label tagging, GPS capture
+ * per save, and a live noise-zone MapView that builds as readings accumulate.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, StyleSheet, View, Text, Animated, TouchableOpacity } from 'react-native';
+import {
+  Alert,
+  StyleSheet,
+  View,
+  Text,
+  Animated,
+  TouchableOpacity,
+  TextInput,
+} from 'react-native';
 import {
   useAudioRecorder,
   useAudioRecorderState,
@@ -13,18 +21,23 @@ import {
   RecordingPresets,
   setAudioModeAsync,
 } from 'expo-audio';
+import * as Location from 'expo-location';
+import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import {
   convertToEnvironmentalDb,
+  smoothDb,
   getHearingRisk,
   type AudioReading,
 } from '@/services/sensors/audio';
 import { Spacing, BorderRadius, Typography } from '@/constants/theme';
 
-interface SavedReading {
+export interface SavedReading {
   label: string;
   db: number;
   risk: string;
   riskColor: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface Props {
@@ -46,6 +59,8 @@ export default function SoundSensor({ colors, accentColor, onReadingUpdate, onSa
   const [peakDb, setPeakDb] = useState(0);
   const [riskLevel, setRiskLevel] = useState(getHearingRisk(0));
   const [savedReadings, setSavedReadings] = useState<SavedReading[]>([]);
+  const [zoneLabel, setZoneLabel] = useState('');
+  const [isSavingGps, setIsSavingGps] = useState(false);
   const barWidth = useRef(new Animated.Value(0)).current;
 
   // Request mic permission on mount
@@ -58,29 +73,23 @@ export default function SoundSensor({ colors, accentColor, onReadingUpdate, onSa
     })();
   }, []);
 
-  // Process metering data from recorder state
+  // Process metering — apply EMA smoothing, guard null/undefined
   useEffect(() => {
-    if (!isActive || recorderState.metering === undefined) return;
+    if (!isActive || recorderState.metering == null) return;
 
-    const dbFS = recorderState.metering;
-    const approxDb = convertToEnvironmentalDb(dbFS);
-    const roundedDb = Math.round(approxDb);
+    const rawDb = convertToEnvironmentalDb(recorderState.metering);
 
-    setCurrentDb(roundedDb);
-    if (roundedDb > peakDb) setPeakDb(roundedDb);
-    setRiskLevel(getHearingRisk(roundedDb));
+    setCurrentDb((prev) => {
+      const smoothed = prev === 0 ? Math.round(rawDb) : smoothDb(prev, rawDb);
+      if (smoothed > peakDb) setPeakDb(smoothed);
+      setRiskLevel(getHearingRisk(smoothed));
+      return smoothed;
+    });
 
-    const reading: AudioReading = { dbFS, approxDb, timestamp: Date.now() };
-    onReadingUpdate(reading);
+    onReadingUpdate({ dbFS: recorderState.metering, approxDb: rawDb, timestamp: Date.now() });
 
-    // Animate bar width (0–130 dB scale → 0–100%)
-    const pct = Math.min(approxDb / 130, 1);
-    Animated.spring(barWidth, {
-      toValue: pct,
-      tension: 80,
-      friction: 12,
-      useNativeDriver: false,
-    }).start();
+    const pct = Math.min(rawDb / 130, 1);
+    Animated.spring(barWidth, { toValue: pct, tension: 80, friction: 12, useNativeDriver: false }).start();
   }, [recorderState.metering, isActive]);
 
   const handleToggle = async () => {
@@ -88,30 +97,61 @@ export default function SoundSensor({ colors, accentColor, onReadingUpdate, onSa
       await audioRecorder.stop();
       setIsActive(false);
     } else {
-      await setAudioModeAsync({
-        playsInSilentMode: true,
-        allowsRecording: true,
-      });
+      await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
       await audioRecorder.prepareToRecordAsync();
       audioRecorder.record();
       setIsActive(true);
     }
   };
 
-  const handleSaveReading = () => {
+  const handleSaveReading = async () => {
+    setIsSavingGps(true);
+    let latitude: number | undefined;
+    let longitude: number | undefined;
+
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        latitude = loc.coords.latitude;
+        longitude = loc.coords.longitude;
+      }
+    } catch {
+      // GPS unavailable — save without location
+    } finally {
+      setIsSavingGps(false);
+    }
+
     const readingNumber = savedReadings.length + 1;
+    const label = zoneLabel.trim() || `Zone ${readingNumber}`;
+
     const saved: SavedReading = {
-      label: `Reading ${readingNumber}`,
+      label,
       db: currentDb,
       risk: riskLevel.level,
       riskColor: riskLevel.color,
+      latitude,
+      longitude,
     };
-    setSavedReadings(prev => [...prev, saved]);
+
+    setSavedReadings((prev) => [...prev, saved]);
+    setZoneLabel(''); // Clear for next zone
     if (onSaveReading) onSaveReading(saved);
   };
 
+  // Derive map region centred on the first reading that has GPS
+  const gpsReadings = savedReadings.filter((r) => r.latitude != null && r.longitude != null);
+  const mapRegion =
+    gpsReadings.length > 0
+      ? {
+          latitude: gpsReadings[0].latitude!,
+          longitude: gpsReadings[0].longitude!,
+          latitudeDelta: 0.0006,
+          longitudeDelta: 0.0006,
+        }
+      : null;
+
   const barColor =
-    currentDb < 30 ? '#10B981' :
     currentDb < 60 ? '#10B981' :
     currentDb < 85 ? '#F59E0B' :
     currentDb < 100 ? '#EF4444' : '#DC2626';
@@ -120,40 +160,21 @@ export default function SoundSensor({ colors, accentColor, onReadingUpdate, onSa
     <View style={styles.container}>
       {/* dB Display */}
       <View style={[styles.dbDisplay, { backgroundColor: colors.backgroundElement }]}>
-        <Text style={[styles.dbLabel, { color: colors.textSecondary }]}>
-          🔊 Sound Level
-        </Text>
-        <Text style={[styles.dbValue, { color: barColor }]}>
-          {currentDb}
-        </Text>
-        <Text style={[styles.dbUnit, { color: colors.textSecondary }]}>
-          dB (approx)
-        </Text>
+        <Text style={[styles.dbLabel, { color: colors.textSecondary }]}>🔊 Sound Level</Text>
+        <Text style={[styles.dbValue, { color: barColor }]}>{currentDb}</Text>
+        <Text style={[styles.dbUnit, { color: colors.textSecondary }]}>dB (approx)</Text>
       </View>
 
-      {/* Level Bar */}
+      {/* Level bar */}
       <View style={[styles.barContainer, { backgroundColor: colors.backgroundElement }]}>
         <Animated.View
-          style={[
-            styles.bar,
-            {
-              backgroundColor: barColor,
-              width: barWidth.interpolate({
-                inputRange: [0, 1],
-                outputRange: ['0%', '100%'],
-              }),
-            },
-          ]}
+          style={[styles.bar, { backgroundColor: barColor, width: barWidth.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) }]}
         />
       </View>
-      {/* Scale markers */}
       <View style={styles.scaleMarkers}>
-        <Text style={[styles.scaleText, { color: colors.textSecondary }]}>0</Text>
-        <Text style={[styles.scaleText, { color: colors.textSecondary }]}>30</Text>
-        <Text style={[styles.scaleText, { color: colors.textSecondary }]}>60</Text>
-        <Text style={[styles.scaleText, { color: colors.textSecondary }]}>85</Text>
-        <Text style={[styles.scaleText, { color: colors.textSecondary }]}>100</Text>
-        <Text style={[styles.scaleText, { color: colors.textSecondary }]}>130</Text>
+        {['0', '30', '60', '85', '100', '130'].map((v) => (
+          <Text key={v} style={[styles.scaleText, { color: colors.textSecondary }]}>{v}</Text>
+        ))}
       </View>
 
       {/* Peak + Risk */}
@@ -167,158 +188,162 @@ export default function SoundSensor({ colors, accentColor, onReadingUpdate, onSa
           <Text style={[styles.statValue, { color: riskLevel.color }]}>{riskLevel.level}</Text>
         </View>
       </View>
-
-      {/* Risk description */}
       {riskLevel.description ? (
         <Text style={[styles.riskDescription, { color: riskLevel.color }]}>
           {riskLevel.description}
         </Text>
       ) : null}
 
-      {/* Action Buttons */}
+      {/* Zone label input + action buttons */}
+      <TextInput
+        style={[styles.zoneLabelInput, { backgroundColor: colors.backgroundElement, color: colors.text, borderColor: colors.border }]}
+        placeholder="Zone name (e.g. Front of class, Near window…)"
+        placeholderTextColor={colors.textSecondary}
+        value={zoneLabel}
+        onChangeText={setZoneLabel}
+        accessibilityLabel="Zone location label"
+      />
+
       <View style={styles.buttonRow}>
         <TouchableOpacity
           style={[styles.toggleButton, { backgroundColor: isActive ? '#EF4444' : accentColor }]}
           onPress={handleToggle}
           accessibilityLabel={isActive ? 'Stop recording sound' : 'Start recording sound'}
         >
-          <Text style={styles.toggleText}>
-            {isActive ? '⏹ Stop' : '🎙️ Start'}
-          </Text>
+          <Text style={styles.toggleText}>{isActive ? '⏹ Stop' : '🎙️ Start'}</Text>
         </TouchableOpacity>
 
         {isActive && (
           <TouchableOpacity
-            style={[styles.saveButton, { borderColor: accentColor }]}
+            style={[styles.saveButton, { borderColor: accentColor, opacity: isSavingGps ? 0.6 : 1 }]}
             onPress={handleSaveReading}
-            accessibilityLabel="Save current reading"
+            disabled={isSavingGps}
+            accessibilityLabel="Save current reading for this zone"
           >
             <Text style={[styles.saveText, { color: accentColor }]}>
-              📸 Save Reading
+              {isSavingGps ? '📍 Getting GPS…' : '📸 Save Zone'}
             </Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Saved Readings List */}
+      {/* Saved readings list */}
       {savedReadings.length > 0 && (
         <View style={[styles.savedSection, { backgroundColor: colors.backgroundElement }]}>
           <Text style={[styles.savedTitle, { color: colors.text }]}>
-            📋 Saved Readings
+            📋 Zone Readings
           </Text>
           {savedReadings.map((reading, i) => (
             <View key={i} style={[styles.savedRow, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.savedLabel, { color: colors.text }]}>
-                {reading.label}
-              </Text>
-              <Text style={[styles.savedDb, { color: colors.text }]}>
-                {reading.db} dB
-              </Text>
-              <Text style={[styles.savedRisk, { color: reading.riskColor }]}>
-                {reading.risk}
-              </Text>
+              <View style={[styles.colorDot, { backgroundColor: reading.riskColor }]} />
+              <Text style={[styles.savedLabel, { color: colors.text }]}>{reading.label}</Text>
+              <Text style={[styles.savedDb, { color: colors.text }]}>{reading.db} dB</Text>
+              <Text style={[styles.savedRisk, { color: reading.riskColor }]}>{reading.risk}</Text>
             </View>
           ))}
         </View>
+      )}
+
+      {/* Noise Zone Map — appears once 2+ GPS-tagged readings exist */}
+      {gpsReadings.length >= 2 && mapRegion && (
+        <View style={styles.mapWrapper}>
+          <Text style={[styles.mapTitle, { color: colors.text }]}>
+            🗺️ Noise Zone Map
+          </Text>
+          <Text style={[styles.mapSubtitle, { color: colors.textSecondary }]}>
+            Green = quiet · Orange = moderate · Red = loud
+          </Text>
+          <MapView
+            style={styles.map}
+            provider={PROVIDER_DEFAULT}
+            initialRegion={mapRegion}
+            scrollEnabled={false}
+            zoomEnabled={false}
+          >
+            {gpsReadings.map((r, i) => (
+              <Marker
+                key={i}
+                coordinate={{ latitude: r.latitude!, longitude: r.longitude! }}
+                pinColor={r.riskColor}
+                title={r.label}
+                description={`${r.db} dB · ${r.risk}`}
+              />
+            ))}
+          </MapView>
+        </View>
+      )}
+
+      {/* Prompt to walk around if only 1 reading so far */}
+      {savedReadings.length === 1 && (
+        <Text style={[styles.walkHint, { color: colors.textSecondary }]}>
+          💡 Move to a different location, type its name, then save another reading to build your zone map.
+        </Text>
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { alignItems: 'center' },
+  container: { alignItems: 'center', width: '100%' },
   dbDisplay: {
-    width: '100%',
-    padding: Spacing.xl,
-    borderRadius: BorderRadius.lg,
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
+    width: '100%', padding: Spacing.xl, borderRadius: BorderRadius.lg,
+    alignItems: 'center', marginBottom: Spacing.lg,
   },
   dbLabel: { fontSize: Typography.bodyMedium.fontSize, marginBottom: Spacing.xs },
   dbValue: { fontSize: 56, fontWeight: '700', fontVariant: ['tabular-nums'] },
   dbUnit: { fontSize: Typography.bodyMedium.fontSize, marginTop: Spacing.xxs },
   barContainer: {
-    width: '100%',
-    height: 24,
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: Spacing.xs,
+    width: '100%', height: 24, borderRadius: 12, overflow: 'hidden', marginBottom: Spacing.xs,
   },
-  bar: {
-    height: '100%',
-    borderRadius: 12,
-  },
+  bar: { height: '100%', borderRadius: 12 },
   scaleMarkers: {
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 2,
-    marginBottom: Spacing.md,
+    width: '100%', flexDirection: 'row', justifyContent: 'space-between',
+    paddingHorizontal: 2, marginBottom: Spacing.md,
   },
   scaleText: { fontSize: 10 },
   statsRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    width: '100%',
-    marginBottom: Spacing.sm,
+    flexDirection: 'row', gap: Spacing.sm, width: '100%', marginBottom: Spacing.sm,
   },
   statBox: {
-    flex: 1,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
+    flex: 1, padding: Spacing.md, borderRadius: BorderRadius.md, alignItems: 'center',
   },
   statLabel: { fontSize: Typography.labelSmall.fontSize, marginBottom: 2 },
   statValue: { fontSize: Typography.titleMedium.fontSize, fontWeight: '600' },
   riskDescription: {
-    fontSize: Typography.bodyMedium.fontSize,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
+    fontSize: Typography.bodyMedium.fontSize, fontStyle: 'italic',
+    textAlign: 'center', marginBottom: Spacing.lg, width: '100%',
   },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    marginBottom: Spacing.lg,
-  },
-  toggleButton: {
-    paddingHorizontal: Spacing.xxl,
-    paddingVertical: Spacing.lg,
-    borderRadius: BorderRadius.lg,
-  },
-  toggleText: {
-    color: '#FFFFFF',
-    fontSize: Typography.labelLarge.fontSize,
-    fontWeight: '700',
-  },
-  saveButton: {
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.lg,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1.5,
-  },
-  saveText: {
-    fontSize: Typography.labelLarge.fontSize,
-    fontWeight: '600',
-  },
-  savedSection: {
-    width: '100%',
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-  },
-  savedTitle: {
-    fontSize: Typography.labelLarge.fontSize,
-    fontWeight: '600',
+  zoneLabelInput: {
+    width: '100%', height: 44, borderRadius: BorderRadius.md, borderWidth: 1,
+    paddingHorizontal: Spacing.md, fontSize: Typography.bodyMedium.fontSize,
     marginBottom: Spacing.sm,
   },
-  savedRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+  buttonRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.lg, width: '100%' },
+  toggleButton: {
+    flex: 1, paddingVertical: Spacing.lg, borderRadius: BorderRadius.lg, alignItems: 'center',
   },
-  savedLabel: { fontSize: Typography.bodyMedium.fontSize, flex: 1 },
-  savedDb: { fontSize: Typography.bodyMedium.fontSize, fontWeight: '600', marginRight: Spacing.md },
-  savedRisk: { fontSize: Typography.bodyMedium.fontSize, fontWeight: '500', minWidth: 80, textAlign: 'right' },
+  toggleText: { color: '#FFFFFF', fontSize: Typography.labelLarge.fontSize, fontWeight: '700' },
+  saveButton: {
+    flex: 1, paddingVertical: Spacing.lg, borderRadius: BorderRadius.lg,
+    borderWidth: 1.5, alignItems: 'center',
+  },
+  saveText: { fontSize: Typography.labelLarge.fontSize, fontWeight: '600' },
+  savedSection: { width: '100%', borderRadius: BorderRadius.lg, padding: Spacing.md, marginBottom: Spacing.md },
+  savedTitle: { fontSize: Typography.labelLarge.fontSize, fontWeight: '600', marginBottom: Spacing.sm },
+  savedRow: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth, gap: Spacing.sm,
+  },
+  colorDot: { width: 10, height: 10, borderRadius: 5 },
+  savedLabel: { flex: 1, fontSize: Typography.bodyMedium.fontSize },
+  savedDb: { fontSize: Typography.bodyMedium.fontSize, fontWeight: '600' },
+  savedRisk: { fontSize: Typography.bodySmall.fontSize, fontWeight: '500', minWidth: 70, textAlign: 'right' },
+  mapWrapper: { width: '100%', marginBottom: Spacing.md },
+  mapTitle: { fontSize: Typography.titleMedium.fontSize, fontWeight: '600', marginBottom: Spacing.xxs },
+  mapSubtitle: { fontSize: Typography.bodySmall.fontSize, marginBottom: Spacing.sm },
+  map: { width: '100%', height: 200, borderRadius: BorderRadius.lg, overflow: 'hidden' },
+  walkHint: {
+    fontSize: Typography.bodySmall.fontSize, textAlign: 'center',
+    paddingHorizontal: Spacing.md, marginTop: Spacing.xs,
+  },
 });

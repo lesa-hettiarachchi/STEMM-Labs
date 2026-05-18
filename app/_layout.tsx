@@ -5,16 +5,23 @@
 
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import React, { useEffect } from 'react';
 
 import { SettingsProvider, useSettings } from '@/context/SettingsContext';
 import { TeamProvider } from '@/context/TeamContext';
 import { ActivityProvider } from '@/context/ActivityContext';
 import { Colors } from '@/constants/theme';
+import { registerForNotifications } from '@/services/notifications';
+import { registerBackgroundSync } from '@/services/backgroundTask';
 
 function RootStack() {
   const { resolvedTheme } = useSettings();
   const colors = Colors[resolvedTheme];
+
+  useEffect(() => {
+    registerForNotifications().catch(console.warn);
+    registerBackgroundSync().catch(console.warn);
+  }, []);
 
   return (
     <>
@@ -41,7 +48,7 @@ function RootStack() {
           options={{
             headerShown: true,
             title: 'Settings',
-            animation: 'slide_from_bottom',
+            presentation: 'modal',
           }}
         />
         <Stack.Screen

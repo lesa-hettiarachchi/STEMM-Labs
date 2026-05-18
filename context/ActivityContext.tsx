@@ -9,6 +9,54 @@ import { saveAttempt, upsertLeaderboardEntry } from '@/services/firestore';
 import { getCurrentLocation } from '@/services/location';
 import { useTeam } from '@/context/TeamContext';
 
+// ─── Leaderboard score derivation ────────────────────────────────
+// Each activity produces a numeric score so the leaderboard can rank teams.
+// Higher score = better performance in all cases.
+
+function deriveBestScore(
+  activityId: string,
+  calcParams: Record<string, number>,
+  sensorReadings: SensorReading[],
+  rating: number
+): { score: number; unit: string } {
+  switch (activityId) {
+    case 'parachute-drop': {
+      // Longer hang-time = better parachute. Store as centiseconds (integer-friendly).
+      const t = calcParams.time ?? 0;
+      return { score: Math.round(t * 100), unit: 'cs' };
+    }
+    case 'sound-pollution': {
+      // Peak dB recorded by the team (highest reading saved = score).
+      const dbs = sensorReadings.filter((r) => r.sensorType === 'microphone').map((r) => r.value);
+      return { score: dbs.length > 0 ? Math.round(Math.max(...dbs)) : 0, unit: 'dB' };
+    }
+    case 'hand-fan': {
+      // Largest measured bend angle = best fan performance.
+      return { score: Math.round(calcParams.angle ?? 0), unit: '°' };
+    }
+    case 'earthquake-structure': {
+      // Lower vibration amplitude = more stable structure → invert to score.
+      const amp = calcParams.peakAmplitude ?? 50;
+      return { score: Math.max(0, Math.round(100 - amp)), unit: 'pts' };
+    }
+    case 'human-performance': {
+      // Smoothness score 0-100 from the accelerometer.
+      return { score: Math.round(calcParams.smoothness ?? 0), unit: 'pts' };
+    }
+    case 'reaction-board': {
+      // Faster reaction = better. Map 0–1000 ms to 1000–0 pts.
+      const best = calcParams.bestReaction ?? 500;
+      return { score: Math.max(0, Math.round(1000 - best)), unit: 'pts' };
+    }
+    case 'breathing-pace': {
+      // Use star rating as proxy (breathing data doesn't have a single "best" value).
+      return { score: rating * 20, unit: 'pts' };
+    }
+    default:
+      return { score: rating * 20, unit: 'pts' };
+  }
+}
+
 interface ActivitySession {
   activityId: string;
   iteration: number;
@@ -130,22 +178,32 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
       console.warn('Failed to save attempt to Firestore:', err)
     );
 
+    // Derive leaderboard score from actual sensor/calc data
+    const { score, unit } = deriveBestScore(
+      session.activityId,
+      session.calcParams,
+      session.sensorReadings,
+      session.rating
+    );
+
     // Update local activity progress
     const updatedProgress = { ...activityProgress };
-    const isLastIteration =
-      session.iteration >= 3; // Most activities have 3 max iterations
+    const prevBest = activityProgress[session.activityId]?.bestScore;
+    const newBest = prevBest !== undefined ? Math.max(prevBest, score) : score;
+
+    const isLastIteration = session.iteration >= 3;
 
     updatedProgress[session.activityId] = {
       status: isLastIteration ? 'completed' : 'in_progress',
       currentIteration: session.iteration + 1,
-      bestScore: session.calcParams.bestScore,
-      bestScoreUnit: undefined,
+      bestScore: newBest,
+      bestScoreUnit: unit,
     };
 
     await updateActivityProgress(updatedProgress);
 
-    // Update leaderboard if there's a score
-    if (session.calcParams.bestScore && team) {
+    // Always push to leaderboard (upsertLeaderboardEntry only keeps the best)
+    if (team) {
       upsertLeaderboardEntry({
         id: '',
         teamId: team.id,
@@ -154,8 +212,8 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
         schoolName: team.schoolName,
         gradeLevel: team.gradeLevel,
         activityId: session.activityId,
-        bestScore: session.calcParams.bestScore,
-        bestScoreUnit: session.calcParams.bestScoreUnit?.toString() ?? '',
+        bestScore: score,
+        bestScoreUnit: unit,
         dateAchieved: Date.now(),
       }).catch(console.warn);
     }

@@ -28,15 +28,23 @@ export default function InstructionsScreen() {
     const [currentStep, setCurrentStep] = useState(0);
     const fadeAnim = useRef(new Animated.Value(1)).current;
 
-    // Timer state (for timed activities like Parachute)
-    const [timerSeconds, setTimerSeconds] = useState(
-        activity?.hasTimer && activity.timerMinutes
-            ? activity.timerMinutes * 60
-            : 0
-    );
+    // Timer — auto-starts immediately for timed activities (no manual button)
+    const totalSeconds =
+        activity?.hasTimer && activity.timerMinutes ? activity.timerMinutes * 60 : 0;
+    const [timerSeconds, setTimerSeconds] = useState(totalSeconds);
     const [timerRunning, setTimerRunning] = useState(false);
+    // Record the wall-clock expiry so the record screen can pick up the same countdown
+    const timerExpiresAt = useRef<number>(0);
 
-    // Timer countdown
+    // Start the timer as soon as the instructions screen mounts for timed activities
+    useEffect(() => {
+        if (activity?.hasTimer && totalSeconds > 0) {
+            timerExpiresAt.current = Date.now() + totalSeconds * 1000;
+            setTimerRunning(true);
+        }
+    }, []);
+
+    // Countdown tick
     useEffect(() => {
         if (!timerRunning || timerSeconds <= 0) return;
         const interval = setInterval(() => {
@@ -106,18 +114,15 @@ export default function InstructionsScreen() {
                 }}
             />
             <View style={[styles.container, { backgroundColor: colors.background }]}>
-                {/* Timer Banner */}
+                {/* Timer Banner — auto-started, no manual button needed */}
                 {activity.hasTimer && (
-                    <View style={[styles.timerBanner, { backgroundColor: accentColor }]}>
-                        <Text style={styles.timerLabel}>⏱️ Time Remaining</Text>
+                    <View style={[styles.timerBanner, { backgroundColor: timerSeconds <= 60 ? '#EF4444' : accentColor }]}>
+                        <Text style={styles.timerLabel}>
+                            {timerSeconds <= 60 ? '⚠️ Time Running Out!' : '⏱️ Time Remaining'}
+                        </Text>
                         <Text style={styles.timerValue}>{formatTime(timerSeconds)}</Text>
-                        {!timerRunning && timerSeconds > 0 && (
-                            <TouchableOpacity
-                                style={styles.timerStartBtn}
-                                onPress={() => setTimerRunning(true)}
-                            >
-                                <Text style={styles.timerStartText}>Start Timer</Text>
-                            </TouchableOpacity>
+                        {timerSeconds === 0 && (
+                            <Text style={styles.timerDoneText}>Time's up — submit your results!</Text>
                         )}
                     </View>
                 )}
@@ -174,7 +179,7 @@ export default function InstructionsScreen() {
                                 ]}
                                 onPress={() => {
                                     // Navigate to data recording
-                                    router.push(`/activity/${id}/record`);
+                                    router.push(timerExpiresAt.current > 0 ? `/activity/${id}/record?expiresAt=${timerExpiresAt.current}` : `/activity/${id}/record`);
                                 }}
                                 accessibilityLabel={step.sensorLabel || 'Activate sensor'}
                                 accessibilityRole="button"
@@ -220,7 +225,7 @@ export default function InstructionsScreen() {
                                 { backgroundColor: colors.primary },
                                 Shadows.md,
                             ]}
-                            onPress={() => router.push(`/activity/${id}/record`)}
+                            onPress={() => router.push(timerExpiresAt.current > 0 ? `/activity/${id}/record?expiresAt=${timerExpiresAt.current}` : `/activity/${id}/record`)}
                             accessibilityLabel="Start recording data"
                         >
                             <Text style={[styles.navButtonText, { color: colors.onPrimary }]}>
@@ -264,16 +269,11 @@ const styles = StyleSheet.create({
         fontSize: Typography.titleLarge.fontSize,
         fontWeight: '700',
     },
-    timerStartBtn: {
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        paddingHorizontal: Spacing.md,
-        paddingVertical: Spacing.xs,
-        borderRadius: BorderRadius.full,
-    },
-    timerStartText: {
-        color: '#FFFFFF',
+    timerDoneText: {
+        color: 'rgba(255,255,255,0.9)',
         fontSize: Typography.labelSmall.fontSize,
         fontWeight: '600',
+        marginTop: 2,
     },
     progressContainer: {
         flexDirection: 'row',

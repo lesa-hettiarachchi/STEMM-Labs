@@ -409,9 +409,11 @@ export const ACTIVITIES: ActivityDefinition[] = [
         },
         writeUp: {
             prompts: [
-                'Predict your breaths per minute for each condition.',
-                'Record the results.',
-                'Were you right? Any surprises?',
+                'Before you start: predict how many breaths per minute you take at rest (sitting still).',
+                'After exercise: predict by how much your breathing rate will increase.',
+                'Record your actual breathing rate for each condition (rest, after exercise 1, after exercise 2).',
+                'Compare your prediction to the results — were you right? How much did the rate change?',
+                'Why does your breathing speed up during exercise? Which body systems are involved?',
             ],
         },
         discussion:

@@ -100,6 +100,10 @@ export interface SensorReading {
     value: number;
     unit: string;
     timestamp: number;
+    // Optional enrichment fields — used by Sound Pollution zone mapping
+    latitude?: number;  // GPS latitude where reading was taken
+    longitude?: number; // GPS longitude where reading was taken
+    label?: string;     // Student-entered zone label (e.g. "Front of class")
 }
 
 export interface DataTableRow {

@@ -28,14 +28,34 @@ import { useActivity } from '@/context/ActivityContext';
 import { useSettings } from '@/context/SettingsContext';
 import { useTeam } from '@/context/TeamContext';
 
+// ─── Activity 5: Guided movements ────────────────────────────────
+const GUIDED_MOVEMENTS = [
+    {
+        icon: '🦾',
+        name: 'Movement 1 — Slow Arm Raise',
+        desc: 'Hold phone firmly in one hand. Raise your arm slowly overhead, then lower it. Keep movement smooth — no jerking.',
+    },
+    {
+        icon: '🤸',
+        name: 'Movement 2 — Side Bend',
+        desc: 'Hold phone flat against your chest. Slowly bend to the left as far as comfortable, return upright, then bend right.',
+    },
+    {
+        icon: '🫲',
+        name: 'Movement 3 — Forward Reach',
+        desc: 'Hold phone in front of you at chest height. Reach forward as far as you can, then slowly return to start position.',
+    },
+] as const;
+
 export default function DataRecordingScreen() {
-    const { id } = useLocalSearchParams<{ id: string }>();
+    const { id, expiresAt: expiresAtParam } = useLocalSearchParams<{ id: string; expiresAt?: string }>();
     const router = useRouter();
     const { resolvedTheme } = useSettings();
     const { team, activityProgress } = useTeam();
     const {
         session,
         startSession,
+        addSensorReading,
         setDataTableRows,
         setRating: setSessionRating,
         setComment: setSessionComment,
@@ -48,6 +68,21 @@ export default function DataRecordingScreen() {
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+
+    // Carry over the live countdown from the instructions screen
+    const expiresAt = expiresAtParam ? parseInt(expiresAtParam, 10) : 0;
+    const [timerSeconds, setTimerSeconds] = useState<number>(() =>
+        expiresAt > 0 ? Math.max(0, Math.round((expiresAt - Date.now()) / 1000)) : 0
+    );
+    useEffect(() => {
+        if (!expiresAt || timerSeconds <= 0) return;
+        const interval = setInterval(() => {
+            const remaining = Math.max(0, Math.round((expiresAt - Date.now()) / 1000));
+            setTimerSeconds(remaining);
+            if (remaining <= 0) clearInterval(interval);
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [expiresAt]);
     // Parachute-specific measurement inputs
     const [dropHeight, setDropHeight] = useState('');
     const [toyMass, setToyMass] = useState('');
@@ -63,6 +98,14 @@ export default function DataRecordingScreen() {
     }, [id, activity]);
 
     if (!activity) return null;
+
+    const formatTime = (s: number) => {
+        const m = Math.floor(s / 60);
+        const sec = s % 60;
+        return `${m}:${sec.toString().padStart(2, '0')}`;
+    };
+
+    const timerVisible = activity.hasTimer && expiresAt > 0;
 
     const accentColor =
         activity.category === 'engineering' ? colors.engineering : colors.health;
@@ -131,6 +174,22 @@ export default function DataRecordingScreen() {
                         colors={colors}
                         accentColor={accentColor}
                         onReadingUpdate={() => {}}
+                        onSaveReading={(saved) => {
+                            // Each "Save Zone" tap stores the dB snapshot plus
+                            // its GPS coordinates and zone label so the results
+                            // screen can compute averages and the zone map can
+                            // render colour-coded markers.
+                            addSensorReading({
+                                id: Date.now().toString(36),
+                                sensorType: 'microphone',
+                                value: saved.db,
+                                unit: 'dB',
+                                timestamp: Date.now(),
+                                latitude: saved.latitude,
+                                longitude: saved.longitude,
+                                label: saved.label,
+                            });
+                        }}
                     />
                 );
 
@@ -206,10 +265,43 @@ export default function DataRecordingScreen() {
                 }}
             />
             <View style={[styles.container, { backgroundColor: colors.background }]}>
+                {/* Sticky countdown — visible on record screen when parachute timer is running */}
+                {timerVisible && (
+                    <View style={[
+                        styles.stickyTimer,
+                        { backgroundColor: timerSeconds <= 60 ? '#EF4444' : accentColor },
+                    ]}>
+                        <Text style={styles.stickyTimerText}>
+                            {timerSeconds <= 60 ? '⚠️ ' : '⏱️ '}
+                            {formatTime(timerSeconds)} remaining
+                        </Text>
+                    </View>
+                )}
                 <ScrollView
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
+                    {/* Activity 5 — Movement Guide (shown above the sensor) */}
+                    {id === 'human-performance' && (
+                        <View style={[styles.movementGuideCard, { backgroundColor: colors.surface }, Shadows.sm]}>
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                                🏃 Movement Guide
+                            </Text>
+                            <Text style={[styles.movementIntro, { color: colors.textSecondary }]}>
+                                Perform each movement slowly while holding the phone. The sensor measures speed and smoothness.
+                            </Text>
+                            {GUIDED_MOVEMENTS.map((m, i) => (
+                                <View key={i} style={[styles.movementRow, { borderTopColor: colors.border }]}>
+                                    <Text style={styles.movementIcon}>{m.icon}</Text>
+                                    <View style={styles.movementText}>
+                                        <Text style={[styles.movementName, { color: colors.text }]}>{m.name}</Text>
+                                        <Text style={[styles.movementDesc, { color: colors.textSecondary }]}>{m.desc}</Text>
+                                    </View>
+                                </View>
+                            ))}
+                        </View>
+                    )}
+
                     {/* Sensor Display Area */}
                     <View
                         style={[
@@ -222,6 +314,22 @@ export default function DataRecordingScreen() {
                             {activity.sensorLabel}
                         </Text>
                         {renderSensor()}
+
+                        {/* Parachute — inline camera shortcut so students can record the fall
+                            right at the moment the instruction says to, not just from results */}
+                        {id === 'parachute-drop' && (
+                            <TouchableOpacity
+                                style={[styles.inlineCameraBtn, { borderColor: accentColor }]}
+                                onPress={() => router.push(`/activity/${id}/camera`)}
+                                accessibilityLabel="Open camera to record slow-motion drop video"
+                                accessibilityRole="button"
+                            >
+                                <Ionicons name="videocam-outline" size={18} color={accentColor} />
+                                <Text style={[styles.inlineCameraBtnText, { color: accentColor }]}>
+                                    📹 Record Slow-Motion Drop Video
+                                </Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
 
                     {/* Parachute Measurement Inputs */}
@@ -383,6 +491,16 @@ export default function DataRecordingScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
+    stickyTimer: {
+        paddingVertical: Spacing.sm,
+        alignItems: 'center',
+    },
+    stickyTimerText: {
+        color: '#FFFFFF',
+        fontSize: Typography.labelLarge.fontSize,
+        fontWeight: '700',
+        letterSpacing: 0.5,
+    },
     scrollContent: {
         padding: Spacing.lg,
         paddingBottom: 100,
@@ -478,5 +596,51 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: Typography.labelLarge.fontSize,
         fontWeight: '700',
+    },
+    // ── Activity 5: Movement guide ──────────────────────────────
+    movementGuideCard: {
+        borderRadius: BorderRadius.xl,
+        padding: Spacing.lg,
+        marginBottom: Spacing.lg,
+    },
+    movementIntro: {
+        fontSize: Typography.bodyMedium.fontSize,
+        lineHeight: 20,
+        marginBottom: Spacing.md,
+    },
+    movementRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        paddingTop: Spacing.md,
+        marginTop: Spacing.sm,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        gap: Spacing.md,
+    },
+    movementIcon: { fontSize: 28, marginTop: 2 },
+    movementText: { flex: 1 },
+    movementName: {
+        fontSize: Typography.labelLarge.fontSize,
+        fontWeight: '600',
+        marginBottom: Spacing.xxs,
+    },
+    movementDesc: {
+        fontSize: Typography.bodyMedium.fontSize,
+        lineHeight: 20,
+    },
+    // ── Parachute: inline camera shortcut ───────────────────────
+    inlineCameraBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: Spacing.lg,
+        paddingVertical: Spacing.md,
+        paddingHorizontal: Spacing.lg,
+        borderRadius: BorderRadius.lg,
+        borderWidth: 1.5,
+        gap: Spacing.sm,
+    },
+    inlineCameraBtnText: {
+        fontSize: Typography.labelLarge.fontSize,
+        fontWeight: '600',
     },
 });

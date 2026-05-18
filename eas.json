@@ -1,0 +1,47 @@
+{
+  "cli": {
+    "version": ">= 5.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyD-U9XpKYFgrp9sFUggev8cjOQmg2ro8H0",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "stemm-labs-ccf42.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "stemm-labs-ccf42",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "stemm-labs-ccf42.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "624570748382",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:624570748382:web:a6bf7a40ee288ba9ca614f"
+      }
+    },
+    "production": {
+      "channel": "production",
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyD-U9XpKYFgrp9sFUggev8cjOQmg2ro8H0",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "stemm-labs-ccf42.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "stemm-labs-ccf42",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "stemm-labs-ccf42.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "624570748382",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:624570748382:web:a6bf7a40ee288ba9ca614f"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

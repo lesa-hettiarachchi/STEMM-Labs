@@ -5,7 +5,7 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -20,26 +20,45 @@ import { useActivity } from '@/context/ActivityContext';
 import { useSettings } from '@/context/SettingsContext';
 import { useTeam } from '@/context/TeamContext';
 import { calculateActivityResults, CalculationResult } from '@/services/calculations';
+import { notifyActivityComplete } from '@/services/notifications';
+import { saveAttemptLocal } from '@/services/database';
 
 export default function ResultsScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
     const { resolvedTheme } = useSettings();
-    const { activityProgress } = useTeam();
+    const { activityProgress, team } = useTeam();
     const { session, clearSession } = useActivity();
     const colors = Colors[resolvedTheme];
 
     const activity = getActivityById(id);
-    if (!activity) return null;
 
-    const progress = activityProgress[id];
-    const currentIteration = progress?.currentIteration ?? 1;
-    const canIterate = currentIteration < activity.maxIterations;
-    const accentColor =
-        activity.category === 'engineering' ? colors.engineering : colors.health;
+    // All hooks must be called before any early return
+    useEffect(() => {
+        if (!activity || !session || !team) return;
+
+        // Send completion notification
+        notifyActivityComplete(activity.name).catch(console.warn);
+
+        // Save attempt to SQLite (offline-first local storage)
+        const attempt = {
+            id: `${team.id}_${id}_${session.startedAt ?? Date.now()}`,
+            teamId: team.id,
+            activityId: id,
+            iteration: activityProgress[id]?.currentIteration ?? 1,
+            sensorReadings: session.sensorReadings,
+            dataTableRows: session.dataTableRows,
+            rating: session.rating,
+            comment: session.comment ?? '',
+            startedAt: session.startedAt ?? Date.now(),
+            completedAt: Date.now(),
+        };
+        saveAttemptLocal(attempt).catch(console.warn);
+    }, [activity?.name]);
 
     // Run calculations using session data
     const calculatedResults: CalculationResult[] = useMemo(() => {
+        if (!activity) return [];
         const params = session?.calcParams ?? {};
 
         // For sound activity, extract dB readings
@@ -49,7 +68,15 @@ export default function ResultsScreen() {
                 : undefined;
 
         return calculateActivityResults(id, params, dbReadings);
-    }, [id, session]);
+    }, [id, session, activity]);
+
+    if (!activity) return null;
+
+    const progress = activityProgress[id];
+    const currentIteration = progress?.currentIteration ?? 1;
+    const canIterate = currentIteration < activity.maxIterations;
+    const accentColor =
+        activity.category === 'engineering' ? colors.engineering : colors.health;
 
     const handleReturnHome = () => {
         clearSession();

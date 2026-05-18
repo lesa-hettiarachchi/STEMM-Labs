@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { ThemedText as Text } from '@/components/ThemedText';
+import AdBanner from '@/components/AdBanner';
 
 import {
   ENGINEERING_ACTIVITIES,
@@ -36,6 +37,8 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* AdMob banner at the top */}
+      <AdBanner />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
