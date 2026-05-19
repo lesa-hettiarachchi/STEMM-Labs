@@ -21,7 +21,6 @@ import { useSettings } from '@/context/SettingsContext';
 import { useTeam } from '@/context/TeamContext';
 import { calculateActivityResults, CalculationResult } from '@/services/calculations';
 import { notifyActivityComplete } from '@/services/notifications';
-import { saveAttemptLocal } from '@/services/database';
 
 export default function ResultsScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -33,27 +32,12 @@ export default function ResultsScreen() {
 
     const activity = getActivityById(id);
 
-    // All hooks must be called before any early return
+    // SQLite save now happens inside saveSession (ActivityContext) — this hook
+    // is just for firing the completion notification.
     useEffect(() => {
-        if (!activity || !session || !team) return;
-
-        // Send completion notification
-        notifyActivityComplete(activity.name).catch(console.warn);
-
-        // Save attempt to SQLite (offline-first local storage)
-        const attempt = {
-            id: `${team.id}_${id}_${session.startedAt ?? Date.now()}`,
-            teamId: team.id,
-            activityId: id,
-            iteration: activityProgress[id]?.currentIteration ?? 1,
-            sensorReadings: session.sensorReadings,
-            dataTableRows: session.dataTableRows,
-            rating: session.rating,
-            comment: session.comment ?? '',
-            startedAt: session.startedAt ?? Date.now(),
-            completedAt: Date.now(),
-        };
-        saveAttemptLocal(attempt).catch(console.warn);
+        if (activity) {
+            notifyActivityComplete(activity.name).catch(console.warn);
+        }
     }, [activity?.name]);
 
     // Run calculations using session data

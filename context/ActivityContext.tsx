@@ -6,6 +6,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import type { SensorReading, DataTableRow, ActivityAttempt } from '@/constants/types';
 import { saveAttempt, upsertLeaderboardEntry } from '@/services/firestore';
+import { saveAttemptLocal, markAttemptSynced } from '@/services/database';
 import { getCurrentLocation } from '@/services/location';
 import { useTeam } from '@/context/TeamContext';
 
@@ -155,7 +156,7 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
   const saveSession = useCallback(async (): Promise<ActivityAttempt | null> => {
     if (!session || !team) return null;
 
-    // Get GPS coordinates (non-blocking if denied)
+    // GPS: capped at 4s by getCurrentLocation — returns null if offline / slow
     const location = await getCurrentLocation().catch(() => null);
 
     const attempt: ActivityAttempt = {
@@ -173,9 +174,16 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
       completedAt: Date.now(),
     };
 
-    // Save to Firestore (non-blocking)
-    saveAttempt(attempt).catch((err) =>
-      console.warn('Failed to save attempt to Firestore:', err)
+    // ─── OFFLINE-FIRST WRITE ORDER ─────────────────────────────
+    // 1. SQLite (synchronous, always succeeds)            → source of truth
+    // 2. AsyncStorage progress (synchronous, fast)         → for splash/home
+    // 3. Firestore (fire-and-forget, queues if offline)    → cloud sync
+    // 4. Mark SQLite row synced=1 when Firestore confirms  → backfill on reconnect
+    // ───────────────────────────────────────────────────────────
+
+    // 1. Always save to SQLite first — this is the primary store
+    await saveAttemptLocal(attempt).catch((err) =>
+      console.warn('SQLite save failed:', err)
     );
 
     // Derive leaderboard score from actual sensor/calc data
@@ -186,11 +194,10 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
       session.rating
     );
 
-    // Update local activity progress
+    // 2. Update local activity progress (AsyncStorage)
     const updatedProgress = { ...activityProgress };
     const prevBest = activityProgress[session.activityId]?.bestScore;
     const newBest = prevBest !== undefined ? Math.max(prevBest, score) : score;
-
     const isLastIteration = session.iteration >= 3;
 
     updatedProgress[session.activityId] = {
@@ -202,21 +209,26 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
 
     await updateActivityProgress(updatedProgress);
 
-    // Always push to leaderboard (upsertLeaderboardEntry only keeps the best)
-    if (team) {
-      upsertLeaderboardEntry({
-        id: '',
-        teamId: team.id,
-        teamName: team.name,
-        teamDiscriminator: team.discriminator,
-        schoolName: team.schoolName,
-        gradeLevel: team.gradeLevel,
-        activityId: session.activityId,
-        bestScore: score,
-        bestScoreUnit: unit,
-        dateAchieved: Date.now(),
-      }).catch(console.warn);
-    }
+    // 3. Fire-and-forget Firestore push.  Firebase SDK queues offline writes,
+    //    so calling this is safe even with no connection — the write goes out
+    //    when network returns.  When it succeeds we flag the SQLite row.
+    saveAttempt(attempt)
+      .then(() => markAttemptSynced(attempt.id).catch(() => {}))
+      .catch((err) => console.warn('Firestore save queued/failed:', err));
+
+    // Push leaderboard entry (Firestore handles offline queuing here too)
+    upsertLeaderboardEntry({
+      id: '',
+      teamId: team.id,
+      teamName: team.name,
+      teamDiscriminator: team.discriminator,
+      schoolName: team.schoolName,
+      gradeLevel: team.gradeLevel,
+      activityId: session.activityId,
+      bestScore: score,
+      bestScoreUnit: unit,
+      dateAchieved: Date.now(),
+    }).catch(console.warn);
 
     return attempt;
   }, [session, team, activityProgress, updateActivityProgress]);

@@ -1,48 +1,63 @@
-le# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-# dependencies
+# ─── Dependencies ─────────────────────────────────────────────────
 node_modules/
 
-# Expo
+# ─── Expo ─────────────────────────────────────────────────────────
 .expo/
+.expo-shared/
 dist/
 web-build/
 expo-env.d.ts
 
-# Native
+# ─── EAS Build local cache & artifacts ───────────────────────────
+.eas/
+*.apk
+*.aab
+*.ipa
+
+# ─── Native build outputs (we use Expo managed workflow) ─────────
+/ios
+/android
 .kotlin/
 *.orig.*
+local.properties
+
+# ─── Signing & secrets ───────────────────────────────────────────
 *.jks
 *.p8
 *.p12
 *.key
 *.mobileprovision
+*.pem
 
-# Metro
+# Firebase credentials (per-app config files — store outside repo)
+google-services.json
+GoogleService-Info.plist
+
+# Env files — real keys never committed.  Use .env.example as template.
+.env
+.env*.local
+
+# ─── Metro / React Native ────────────────────────────────────────
 .metro-health-check*
 
-# debug
+# ─── Testing ─────────────────────────────────────────────────────
+coverage/
+
+# ─── TypeScript ──────────────────────────────────────────────────
+*.tsbuildinfo
+
+# ─── Debug logs ──────────────────────────────────────────────────
 npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# macOS
+# ─── Editors & OS ────────────────────────────────────────────────
 .DS_Store
-*.pem
+.vscode/
+.idea/
 
-# local env files (real Firebase keys live here — never commit)
-.env
-.env*.local
-google-services.json
-GoogleService-Info.plist
-
-# typescript
-*.tsbuildinfo
-
+# ─── Misc ────────────────────────────────────────────────────────
 app-example
-
-# generated native folders
-/ios
-/android
-
 *.docx

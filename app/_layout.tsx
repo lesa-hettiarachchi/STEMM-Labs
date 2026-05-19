@@ -12,7 +12,7 @@ import { TeamProvider } from '@/context/TeamContext';
 import { ActivityProvider } from '@/context/ActivityContext';
 import { Colors } from '@/constants/theme';
 import { registerForNotifications } from '@/services/notifications';
-import { registerBackgroundSync } from '@/services/backgroundTask';
+import { registerBackgroundSync, syncPendingAttempts } from '@/services/backgroundTask';
 
 function RootStack() {
   const { resolvedTheme } = useSettings();
@@ -21,6 +21,9 @@ function RootStack() {
   useEffect(() => {
     registerForNotifications().catch(console.warn);
     registerBackgroundSync().catch(console.warn);
+    // On launch, push any SQLite attempts that were saved while offline.
+    // Safe to call always — does nothing if nothing pending or no network.
+    syncPendingAttempts().catch(console.warn);
   }, []);
 
   return (
