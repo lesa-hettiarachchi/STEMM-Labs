@@ -1,12 +1,3 @@
-/**
- * INTEGRATION TESTS — calculateActivityResults()
- * Person 1 (Lesa)
- *
- * Tests the activity router (calculateActivityResults) which integrates
- * multiple calculation functions together. Each test exercises a full
- * calculation pipeline for a specific activity.
- */
-
 import { calculateActivityResults } from '../services/calculations';
 
 // ─── Parachute Drop ──────────────────────────────────────────────

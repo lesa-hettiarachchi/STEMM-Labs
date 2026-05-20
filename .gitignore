@@ -1,29 +1,22 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# ─── Dependencies ─────────────────────────────────────────────────
 node_modules/
 
-# ─── Expo ─────────────────────────────────────────────────────────
 .expo/
 .expo-shared/
 dist/
 web-build/
 expo-env.d.ts
 
-# ─── EAS Build local cache & artifacts ───────────────────────────
 .eas/
 *.apk
 *.aab
 *.ipa
 
-# ─── Native build outputs (we use Expo managed workflow) ─────────
 /ios
 /android
 .kotlin/
 *.orig.*
 local.properties
 
-# ─── Signing & secrets ───────────────────────────────────────────
 *.jks
 *.p8
 *.p12
@@ -31,33 +24,26 @@ local.properties
 *.mobileprovision
 *.pem
 
-# Firebase credentials (per-app config files — store outside repo)
 google-services.json
 GoogleService-Info.plist
 
-# Env files — real keys never committed.  Use .env.example as template.
 .env
 .env*.local
 
-# ─── Metro / React Native ────────────────────────────────────────
 .metro-health-check*
 
-# ─── Testing ─────────────────────────────────────────────────────
 coverage/
 
-# ─── TypeScript ──────────────────────────────────────────────────
 *.tsbuildinfo
 
-# ─── Debug logs ──────────────────────────────────────────────────
 npm-debug.*
+
 yarn-debug.*
 yarn-error.*
 
-# ─── Editors & OS ────────────────────────────────────────────────
 .DS_Store
 .vscode/
 .idea/
 
-# ─── Misc ────────────────────────────────────────────────────────
 app-example
 *.docx

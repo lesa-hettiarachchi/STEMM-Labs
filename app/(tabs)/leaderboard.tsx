@@ -1,9 +1,3 @@
-/**
- * Leaderboard Screen
- * Team rankings per activity from Firestore.
- * The tab navigator provides the top header — no custom header here.
- */
-
 import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -39,7 +33,9 @@ export default function LeaderboardScreen() {
         try {
             const data = await getLeaderboard(activityId);
             setEntries(data);
-        } catch {
+        } catch (err) {
+            // Surface the actual error so we can debug index/rule issues
+            console.error('[Leaderboard] fetch failed for', activityId, err);
             setEntries([]);
         } finally {
             setLoading(false);
@@ -195,7 +191,7 @@ export default function LeaderboardScreen() {
                 </View>
             ) : entries.length === 0 ? (
                 <View style={styles.centered}>
-                    <Text style={styles.emptyIcon}>📊</Text>
+                    <Ionicons name="trophy-outline" size={64} color={colors.textSecondary} style={{ marginBottom: Spacing.md }} />
                     <Text style={[styles.emptyTitle, { color: colors.text }]}>No Rankings Yet</Text>
                     <Text style={[styles.emptySub, { color: colors.textSecondary }]}>
                         Complete "{selectedDef.name}" and submit your results to appear here.
@@ -262,7 +258,6 @@ const styles = StyleSheet.create({
     // States
     centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: Spacing.xl },
     loadingText: { fontSize: Typography.bodyMedium.fontSize, marginTop: Spacing.md },
-    emptyIcon: { fontSize: 56, marginBottom: Spacing.md },
     emptyTitle: {
         fontSize: Typography.titleLarge.fontSize,
         fontWeight: '600',

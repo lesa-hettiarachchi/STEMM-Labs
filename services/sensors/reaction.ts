@@ -1,8 +1,3 @@
-/**
- * Reaction Challenge Service
- * Used for: Reaction Board Challenge (Activity 6)
- * Three phases: Tap Reaction, Swap Hands, Tracing
- */
 
 export type ReactionPhase = 'tap' | 'swap_hands' | 'tracing';
 
@@ -11,14 +6,14 @@ export interface ReactionResult {
   memberName: string;
   phase: ReactionPhase;
   hand?: 'dominant' | 'non-dominant';
-  reactionTimeMs: number;       // Tap/Swap: ms from target appear to tap
-  accuracyPercent?: number;     // Tracing: 0–100%
+  reactionTimeMs: number;
+  accuracyPercent?: number;
   timestamp: number;
 }
 
 export interface TapTarget {
-  x: number;  // 0–1 relative to screen width
-  y: number;  // 0–1 relative to screen height
+  x: number;
+  y: number;
   appearedAt: number;
 }
 
@@ -136,7 +131,7 @@ export function createReactionService() {
       const avgND =
         nonDominant.length > 0
           ? nonDominant.reduce((s, r) => s + r.reactionTimeMs, 0) /
-            nonDominant.length
+          nonDominant.length
           : 0;
 
       return {

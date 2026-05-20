@@ -1,11 +1,5 @@
-/**
- * SQLite Local Database
- * Provides offline-first storage for activity attempts and sensor readings.
- * Complements Firestore (cloud) and AsyncStorage (app settings).
- */
-
-import * as SQLite from 'expo-sqlite';
 import type { ActivityAttempt, SensorReading } from '@/constants/types';
+import * as SQLite from 'expo-sqlite';
 
 const DB_NAME = 'stemm_labs.db';
 

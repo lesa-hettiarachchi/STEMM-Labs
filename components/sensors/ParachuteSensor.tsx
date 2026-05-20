@@ -1,8 +1,3 @@
-/**
- * Parachute Sensor Display (Activity 1)
- * Drop timer with Start/Stop/Reset, elapsed display, computed velocity
- */
-
 import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { createTimer, TimerState } from '@/services/sensors/timer';
@@ -53,7 +48,7 @@ export default function ParachuteSensor({ colors, accentColor, onTimerResult }: 
       {/* Timer Display */}
       <View style={[styles.timerDisplay, { backgroundColor: colors.backgroundElement }]}>
         <Text style={[styles.timerLabel, { color: colors.textSecondary }]}>
-          ⏱️ Drop Time
+          Drop Time
         </Text>
         <Text style={[styles.timerValue, { color: accentColor }]}>
           {formatTime(state.elapsedMs)}

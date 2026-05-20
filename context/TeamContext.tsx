@@ -1,8 +1,3 @@
-/**
- * Team Context
- * Stores the current team profile globally
- */
-
 import type { Team } from '@/constants/types';
 import {
     ActivityProgress,
@@ -18,7 +13,6 @@ interface TeamContextValue {
     team: Team | null;
     activityProgress: ActivityProgress;
     isLoading: boolean;
-    /** Whether the user has completed registration */
     isRegistered: boolean;
     setTeam: (team: Team) => Promise<void>;
     updateTeam: (updates: Partial<Team>) => Promise<void>;

@@ -1,9 +1,3 @@
-
-/**
- * STEMM Labs Data Models
- * Based on ERD from Phase One Design Report
- */
-
 // ─── Team ────────────────────────────────────────────────────────
 
 export interface TeamMember {
@@ -14,11 +8,11 @@ export interface TeamMember {
 export interface Team {
     id: string;
     name: string;
-    discriminator: string; // Auto-generated unique code
-    gradeLevel: string; // 'Year 5' – 'Year 9'
+    discriminator: string; 
+    gradeLevel: string; 
     schoolName?: string;
     members: TeamMember[];
-    createdAt: number; // timestamp
+    createdAt: number; 
 }
 
 // ─── Activity ────────────────────────────────────────────────────
@@ -96,18 +90,17 @@ export interface ActivityDefinition {
 
 export interface SensorReading {
     id: string;
-    sensorType: string; // Key in key-value store
+    sensorType: string; 
     value: number;
     unit: string;
     timestamp: number;
-    // Optional enrichment fields — used by Sound Pollution zone mapping
-    latitude?: number;  // GPS latitude where reading was taken
-    longitude?: number; // GPS longitude where reading was taken
-    label?: string;     // Student-entered zone label (e.g. "Front of class")
+    latitude?: number;  
+    longitude?: number; 
+    label?: string;    
 }
 
 export interface DataTableRow {
-    [key: string]: string; // Column key → value
+    [key: string]: string;
 }
 
 export interface ActivityAttempt {
@@ -117,7 +110,7 @@ export interface ActivityAttempt {
     iteration: number;
     sensorReadings: SensorReading[];
     dataTableRows: DataTableRow[];
-    rating: number; // 1–5 stars
+    rating: number; 
     comment: string;
     gpsLatitude?: number;
     gpsLongitude?: number;
@@ -145,7 +138,7 @@ export interface LeaderboardEntry {
 export interface MediaFile {
     id: string;
     attemptId: string;
-    url: string; // Cloud storage URL
+    url: string; 
     thumbnailUrl?: string;
     type: 'video' | 'image';
     sizeBytes?: number;

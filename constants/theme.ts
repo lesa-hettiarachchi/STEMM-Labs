@@ -1,8 +1,3 @@
-/**
- * STEMM Labs Design System
- * Based on Phase One Design Report — Material Design 3 theming
- */
-
 import '@/types/global.css';
 import { Platform } from 'react-native';
 

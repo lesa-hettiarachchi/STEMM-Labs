@@ -1,8 +1,3 @@
-/**
- * High-precision Timer Service
- * Used for: Parachute drop time, Human Performance movement time
- */
-
 export interface TimerState {
   isRunning: boolean;
   elapsedMs: number;

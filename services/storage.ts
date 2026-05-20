@@ -1,7 +1,3 @@
-/**
- * AsyncStorage Local Persistence
- */
-
 import type { Team } from '@/constants/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

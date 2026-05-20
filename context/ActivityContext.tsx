@@ -5,6 +5,7 @@
 
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import type { SensorReading, DataTableRow, ActivityAttempt } from '@/constants/types';
+import { getActivityById } from '@/constants/activities';
 import { saveAttempt, upsertLeaderboardEntry } from '@/services/firestore';
 import { saveAttemptLocal, markAttemptSynced } from '@/services/database';
 import { getCurrentLocation } from '@/services/location';
@@ -18,13 +19,17 @@ function deriveBestScore(
   activityId: string,
   calcParams: Record<string, number>,
   sensorReadings: SensorReading[],
-  rating: number
+  rating: number,
+  dataTableRows: DataTableRow[] = []
 ): { score: number; unit: string } {
   switch (activityId) {
     case 'parachute-drop': {
-      // Longer hang-time = better parachute. Store as centiseconds (integer-friendly).
-      const t = calcParams.time ?? 0;
-      return { score: Math.round(t * 100), unit: 'cs' };
+      // Tier 2: all 3 designs are rows of the data table.  Best = longest drop time.
+      const times = dataTableRows
+        .map((r) => parseFloat(r.actual ?? ''))
+        .filter((t) => Number.isFinite(t) && t > 0);
+      const best = times.length > 0 ? Math.max(...times) : 0;
+      return { score: Math.round(best * 100), unit: 'cs' };
     }
     case 'sound-pollution': {
       // Peak dB recorded by the team (highest reading saved = score).
@@ -32,13 +37,22 @@ function deriveBestScore(
       return { score: dbs.length > 0 ? Math.round(Math.max(...dbs)) : 0, unit: 'dB' };
     }
     case 'hand-fan': {
-      // Largest measured bend angle = best fan performance.
-      return { score: Math.round(calcParams.angle ?? 0), unit: '°' };
+      // Tier 2: take the largest measured bend angle across all 3 design rows.
+      const angles = dataTableRows
+        .map((r) => parseFloat(r.outcome ?? ''))
+        .filter((a) => Number.isFinite(a) && a > 0);
+      const best = angles.length > 0 ? Math.max(...angles) : 0;
+      return { score: Math.round(best), unit: '°' };
     }
     case 'earthquake-structure': {
-      // Lower vibration amplitude = more stable structure → invert to score.
-      const amp = calcParams.peakAmplitude ?? 50;
-      return { score: Math.max(0, Math.round(100 - amp)), unit: 'pts' };
+      // Tier 2: pick the lowest peak amplitude across all 3 design rows
+      // (most stable wins).  Score = 100 − amplitude × 10, clamped 0–100.
+      const amplitudes = dataTableRows
+        .map((r) => parseFloat(r.outcome ?? ''))
+        .filter((a) => Number.isFinite(a) && a >= 0);
+      const lowest = amplitudes.length > 0 ? Math.min(...amplitudes) : 10;
+      const score = Math.max(0, Math.min(100, Math.round(100 - lowest * 10)));
+      return { score, unit: 'pts' };
     }
     case 'human-performance': {
       // Smoothness score 0-100 from the accelerometer.
@@ -186,23 +200,34 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
       console.warn('SQLite save failed:', err)
     );
 
-    // Derive leaderboard score from actual sensor/calc data
+    // Derive leaderboard score from actual sensor/calc/table data
     const { score, unit } = deriveBestScore(
       session.activityId,
       session.calcParams,
       session.sensorReadings,
-      session.rating
+      session.rating,
+      session.dataTableRows
     );
 
     // 2. Update local activity progress (AsyncStorage)
+    // Use the activity definition for maxIterations rather than hardcoding 3,
+    // so activities with maxIterations: 1 (sound, reaction, breathing) correctly
+    // mark completed on the first save and don't keep incrementing.
+    const activityDef = getActivityById(session.activityId);
+    const maxIterations = activityDef?.maxIterations ?? 1;
+
     const updatedProgress = { ...activityProgress };
     const prevBest = activityProgress[session.activityId]?.bestScore;
     const newBest = prevBest !== undefined ? Math.max(prevBest, score) : score;
-    const isLastIteration = session.iteration >= 3;
+
+    const justCompleted = session.iteration; // 1-based iteration that was just saved
+    const isLastIteration = justCompleted >= maxIterations;
+    // Cap currentIteration at maxIterations so the UI doesn't show "Iteration 4 of 3"
+    const nextIteration = Math.min(justCompleted + 1, maxIterations);
 
     updatedProgress[session.activityId] = {
       status: isLastIteration ? 'completed' : 'in_progress',
-      currentIteration: session.iteration + 1,
+      currentIteration: nextIteration,
       bestScore: newBest,
       bestScoreUnit: unit,
     };
@@ -216,7 +241,9 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
       .then(() => markAttemptSynced(attempt.id).catch(() => {}))
       .catch((err) => console.warn('Firestore save queued/failed:', err));
 
-    // Push leaderboard entry (Firestore handles offline queuing here too)
+    // Push leaderboard entry (Firestore handles offline queuing here too).
+    // Note: upsertLeaderboardEntry strips undefined fields before write,
+    // so optional fields like schoolName are handled correctly.
     upsertLeaderboardEntry({
       id: '',
       teamId: team.id,
@@ -228,7 +255,7 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
       bestScore: score,
       bestScoreUnit: unit,
       dateAchieved: Date.now(),
-    }).catch(console.warn);
+    }).catch((err) => console.warn('[Leaderboard] upsert failed:', err));
 
     return attempt;
   }, [session, team, activityProgress, updateActivityProgress]);

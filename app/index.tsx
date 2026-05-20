@@ -1,44 +1,42 @@
-/**
- * Splash / Redirect Screen
- * Checks if a team profile exists in AsyncStorage:
- *   - If registered → navigate to (tabs)
- *   - If not → navigate to register
- */
-
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
-import { Colors, Spacing, Typography } from '@/constants/theme';
+import { BorderRadius, Colors, Spacing, Typography } from '@/constants/theme';
+import { useAuth } from '@/context/AuthContext';
 import { useSettings } from '@/context/SettingsContext';
 import { useTeam } from '@/context/TeamContext';
 
 export default function SplashScreen() {
     const router = useRouter();
     const { resolvedTheme } = useSettings();
-    const { team, isLoading } = useTeam();
+    const { user, isLoading: authLoading } = useAuth();
+    const { team, isLoading: teamLoading } = useTeam();
     const colors = Colors[resolvedTheme];
-    const [hasChecked, setHasChecked] = useState(false);
 
     useEffect(() => {
-        if (isLoading) return;
+        if (authLoading || teamLoading) return;
 
-        // Small delay so the splash is visible briefly
+        // Short delay so the splash is briefly visible
         const timer = setTimeout(() => {
-            if (team) {
-                router.replace('/(tabs)');
-            } else {
+            if (!user) {
+                router.replace('/login');
+            } else if (!team) {
                 router.replace('/register');
+            } else {
+                router.replace('/(tabs)');
             }
-            setHasChecked(true);
-        }, 800);
+        }, 600);
 
         return () => clearTimeout(timer);
-    }, [isLoading, team]);
+    }, [authLoading, teamLoading, user, team]);
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
-            <Text style={styles.icon}>🔬</Text>
+            <View style={[styles.iconWrap, { backgroundColor: colors.primary + '15' }]}>
+                <Ionicons name="flask-outline" size={48} color={colors.primary} />
+            </View>
             <Text style={[styles.title, { color: colors.text }]}>STEMM Lab</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
                 Real-World STEMM Games
@@ -58,8 +56,12 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    icon: {
-        fontSize: 72,
+    iconWrap: {
+        width: 96,
+        height: 96,
+        borderRadius: BorderRadius.full,
+        justifyContent: 'center',
+        alignItems: 'center',
         marginBottom: Spacing.lg,
     },
     title: {
@@ -71,7 +73,5 @@ const styles = StyleSheet.create({
         fontSize: Typography.bodyLarge.fontSize,
         marginBottom: Spacing.xxl,
     },
-    spinner: {
-        marginTop: Spacing.xl,
-    },
+    spinner: { marginTop: Spacing.xl },
 });

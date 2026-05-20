@@ -1,9 +1,4 @@
-/**
- * Help & Curriculum Screen (Screen 11)
- * Context-sensitive: shows discussion, formulas, curriculum links for an activity
- * Can also be opened generically to browse all activities
- */
-
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -44,9 +39,12 @@ export default function HelpScreen() {
             >
                 {/* Intro */}
                 <View style={[styles.introCard, { backgroundColor: colors.surface }, Shadows.sm]}>
-                    <Text style={[styles.introTitle, { color: colors.text }]}>
-                        📚 Help & Curriculum Guide
-                    </Text>
+                    <View style={styles.introTitleRow}>
+                        <Ionicons name="library-outline" size={20} color={colors.text} />
+                        <Text style={[styles.introTitle, { color: colors.text }]}>
+                            Help & Curriculum Guide
+                        </Text>
+                    </View>
                     <Text style={[styles.introBody, { color: colors.textSecondary }]}>
                         Tap an activity below to view the science discussion, formulas,
                         worked examples, and ACARA curriculum links.
@@ -85,9 +83,11 @@ export default function HelpScreen() {
                                         {activity.categoryLabel}
                                     </Text>
                                 </View>
-                                <Text style={[styles.chevron, { color: colors.textSecondary }]}>
-                                    {isExpanded ? '▲' : '▼'}
-                                </Text>
+                                <Ionicons
+                                    name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                                    size={20}
+                                    color={colors.textSecondary}
+                                />
                             </TouchableOpacity>
 
                             {/* Expanded Content */}
@@ -97,7 +97,7 @@ export default function HelpScreen() {
                                     {activity.discussion && (
                                         <View style={styles.section}>
                                             <Text style={[styles.sectionTitle, { color: accentColor }]}>
-                                                💡 Science Discussion
+                                                Science Discussion
                                             </Text>
                                             <Text style={[styles.sectionBody, { color: colors.text }]}>
                                                 {activity.discussion}
@@ -109,7 +109,7 @@ export default function HelpScreen() {
                                     {activity.formulas && activity.formulas.length > 0 && (
                                         <View style={styles.section}>
                                             <Text style={[styles.sectionTitle, { color: accentColor }]}>
-                                                📐 Formulas
+                                                Formulas
                                             </Text>
                                             {activity.formulas.map((f, i) => (
                                                 <View
@@ -182,7 +182,7 @@ export default function HelpScreen() {
                                     {activity.equipment && activity.equipment.length > 0 && (
                                         <View style={styles.section}>
                                             <Text style={[styles.sectionTitle, { color: accentColor }]}>
-                                                🧰 Equipment Needed
+                                                Equipment Needed
                                             </Text>
                                             {activity.equipment.map((item, i) => (
                                                 <Text
@@ -216,10 +216,15 @@ const styles = StyleSheet.create({
         padding: Spacing.xl,
         marginBottom: Spacing.lg,
     },
+    introTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.xs,
+        marginBottom: Spacing.sm,
+    },
     introTitle: {
         fontSize: Typography.titleLarge.fontSize,
         fontWeight: '700',
-        marginBottom: Spacing.sm,
     },
     introBody: {
         fontSize: Typography.bodyMedium.fontSize,
@@ -246,7 +251,6 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         marginTop: 2,
     },
-    chevron: { fontSize: 14 },
     expandedContent: {
         paddingHorizontal: Spacing.lg,
         paddingBottom: Spacing.lg,

@@ -1,7 +1,4 @@
-/**
- * Team Registration Screen (Screen 2)
- * First-launch only — team name, members, grade, school
- */
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -19,9 +16,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
 import type { Team, TeamMember } from '@/constants/types';
+import { useAuth } from '@/context/AuthContext';
 import { useSettings } from '@/context/SettingsContext';
 import { useTeam } from '@/context/TeamContext';
-import { createTeam } from '@/services/firestore';
+import { createTeam, getTeam } from '@/services/firestore';
 
 const GRADE_OPTIONS = ['Year 5', 'Year 6', 'Year 7', 'Year 8', 'Year 9'];
 
@@ -41,6 +39,7 @@ function generateId(): string {
 export default function RegisterScreen() {
     const router = useRouter();
     const { setTeam } = useTeam();
+    const { user } = useAuth();
     const { resolvedTheme } = useSettings();
     const colors = Colors[resolvedTheme];
 
@@ -49,6 +48,19 @@ export default function RegisterScreen() {
     const [gradeLevel, setGradeLevel] = useState('Year 7');
     const [members, setMembers] = useState<string[]>(['']);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // If this user has logged in from a different device and already
+    // has a team in Firestore, hydrate it locally so they skip registration.
+    React.useEffect(() => {
+        if (!user) return;
+        getTeam(user.uid)
+            .then((existing) => {
+                if (existing) {
+                    setTeam(existing).then(() => router.replace('/(tabs)'));
+                }
+            })
+            .catch(() => {});
+    }, [user?.uid]);
 
     const addMember = () => {
         if (members.length < 6) {
@@ -86,6 +98,11 @@ export default function RegisterScreen() {
 
     const handleSubmit = async () => {
         if (!validate()) return;
+        if (!user) {
+            Alert.alert('Not Logged In', 'Please log in or sign up before registering a team.');
+            router.replace('/login');
+            return;
+        }
         setIsSubmitting(true);
 
         try {
@@ -96,8 +113,10 @@ export default function RegisterScreen() {
                     firstName: firstName.trim(),
                 }));
 
+            // Key the team by the Firebase user UID — guarantees one team per
+            // login and lets the team be re-fetched on a different device.
             const team: Team = {
-                id: generateId(),
+                id: user.uid,
                 name: teamName.trim(),
                 discriminator: generateDiscriminator(),
                 gradeLevel,
@@ -135,7 +154,9 @@ export default function RegisterScreen() {
                 >
                     {/* Header */}
                     <View style={styles.header}>
-                        <Text style={styles.headerEmoji}>🔬</Text>
+                        <View style={[styles.headerIconWrap, { backgroundColor: colors.primary + '15' }]}>
+                            <Ionicons name="people-outline" size={32} color={colors.primary} />
+                        </View>
                         <Text style={[styles.title, { color: colors.text }]}>
                             Welcome to STEMM Labs
                         </Text>
@@ -320,8 +341,16 @@ export default function RegisterScreen() {
                         accessibilityRole="button"
                     >
                         <Text style={[styles.submitText, { color: colors.onPrimary }]}>
-                            {isSubmitting ? 'Creating Team...' : 'Start Exploring! 🚀'}
+                            {isSubmitting ? 'Creating Team…' : 'Start Exploring'}
                         </Text>
+                        {!isSubmitting && (
+                            <Ionicons
+                                name="arrow-forward"
+                                size={20}
+                                color={colors.onPrimary}
+                                style={{ marginLeft: Spacing.xs }}
+                            />
+                        )}
                     </TouchableOpacity>
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -341,7 +370,14 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.xxl,
         marginTop: Spacing.lg,
     },
-    headerEmoji: { fontSize: 48, marginBottom: Spacing.md },
+    headerIconWrap: {
+        width: 64,
+        height: 64,
+        borderRadius: BorderRadius.full,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: Spacing.md,
+    },
     title: {
         fontSize: Typography.headlineLarge.fontSize,
         fontWeight: Typography.headlineLarge.fontWeight,
@@ -425,6 +461,7 @@ const styles = StyleSheet.create({
         borderRadius: BorderRadius.lg,
         justifyContent: 'center',
         alignItems: 'center',
+        flexDirection: 'row',
         ...Shadows.md,
     },
     submitText: {

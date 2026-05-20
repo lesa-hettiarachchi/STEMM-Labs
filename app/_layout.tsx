@@ -1,8 +1,3 @@
-/**
- * Root Layout — App Entry Point
- * Stack navigator with conditional routing (splash → register or tabs)
- */
-
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
@@ -10,6 +5,7 @@ import React, { useEffect } from 'react';
 import { SettingsProvider, useSettings } from '@/context/SettingsContext';
 import { TeamProvider } from '@/context/TeamContext';
 import { ActivityProvider } from '@/context/ActivityContext';
+import { AuthProvider } from '@/context/AuthContext';
 import { Colors } from '@/constants/theme';
 import { registerForNotifications } from '@/services/notifications';
 import { registerBackgroundSync, syncPendingAttempts } from '@/services/backgroundTask';
@@ -39,6 +35,18 @@ function RootStack() {
         }}
       >
         <Stack.Screen name="index" />
+        <Stack.Screen
+          name="login"
+          options={{
+            gestureEnabled: false,
+          }}
+        />
+        <Stack.Screen
+          name="signup"
+          options={{
+            gestureEnabled: false,
+          }}
+        />
         <Stack.Screen
           name="register"
           options={{
@@ -80,11 +88,13 @@ function RootStack() {
 export default function RootLayout() {
   return (
     <SettingsProvider>
-      <TeamProvider>
-        <ActivityProvider>
-          <RootStack />
-        </ActivityProvider>
-      </TeamProvider>
+      <AuthProvider>
+        <TeamProvider>
+          <ActivityProvider>
+            <RootStack />
+          </ActivityProvider>
+        </TeamProvider>
+      </AuthProvider>
     </SettingsProvider>
   );
 }

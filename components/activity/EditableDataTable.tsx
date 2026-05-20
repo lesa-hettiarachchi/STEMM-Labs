@@ -1,8 +1,3 @@
-/**
- * Editable Data Table Component
- * Replaces the read-only example table in record.tsx
- */
-
 import React, { useState } from 'react';
 import {
   StyleSheet,

@@ -1,8 +1,3 @@
-/**
- * STEMM Labs — Master Activity Data
- * All 7 activities from the 2026 User Specification
- */
-
 import { ActivityDefinition } from './types';
 
 export const ACTIVITIES: ActivityDefinition[] = [
@@ -41,7 +36,7 @@ export const ACTIVITIES: ActivityDefinition[] = [
         ],
         dataTable: {
             columns: [
-                { key: 'action', label: 'Action', editable: false },
+                { key: 'action', label: 'Action / Design', editable: true },
                 { key: 'predicted', label: 'Predicted time to hit ground', editable: true },
                 { key: 'actual', label: 'Actual time to first hit ground', editable: true },
                 { key: 'correct', label: 'Were you right?', editable: true },
@@ -81,7 +76,8 @@ export const ACTIVITIES: ActivityDefinition[] = [
             { subject: 'Mathematics', code: 'ACMMG108', description: 'Measuring speed' },
             { subject: 'Mathematics', code: 'ACMSP147', description: 'Comparing data and averages' },
         ],
-        maxIterations: 3,
+        // All 3 parachute designs are recorded inside one session via the
+        maxIterations: 1,
         hasTimer: true,
         timerMinutes: 20,
     },
@@ -196,7 +192,8 @@ export const ACTIVITIES: ActivityDefinition[] = [
         curriculumLinks: [
             { subject: 'Science', code: 'ACSSU076', description: 'Forces and motion' },
         ],
-        maxIterations: 3,
+
+        maxIterations: 1,
         hasTimer: false,
     },
 
@@ -249,7 +246,7 @@ export const ACTIVITIES: ActivityDefinition[] = [
             { subject: 'Science', code: 'ACSSU096', description: 'Earth processes' },
             { subject: 'Design & Technologies', code: 'ACTDEP036', description: 'Testing and improving designs' },
         ],
-        maxIterations: 3,
+        maxIterations: 1,
         hasTimer: false,
     },
 

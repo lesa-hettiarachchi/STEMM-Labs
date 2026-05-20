@@ -1,8 +1,3 @@
-/**
- * Activity Instructions Screen (Screen 7)
- * Step-by-step instructions with sensor activation buttons
- */
-
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -102,6 +97,18 @@ export default function InstructionsScreen() {
                     title: 'Instructions',
                     headerStyle: { backgroundColor: colors.surface },
                     headerTintColor: colors.text,
+                    headerLeft: () => (
+                        <TouchableOpacity
+                            onPress={() => {
+                                if (router.canGoBack()) router.back();
+                                else router.replace(`/activity/${id}`);
+                            }}
+                            accessibilityLabel="Go back"
+                            style={{ paddingHorizontal: 4 }}
+                        >
+                            <Ionicons name="arrow-back" size={26} color={colors.text} />
+                        </TouchableOpacity>
+                    ),
                     headerRight: () => (
                         <TouchableOpacity
                             onPress={() => router.push('/help')}
@@ -117,12 +124,17 @@ export default function InstructionsScreen() {
                 {/* Timer Banner — auto-started, no manual button needed */}
                 {activity.hasTimer && (
                     <View style={[styles.timerBanner, { backgroundColor: timerSeconds <= 60 ? '#EF4444' : accentColor }]}>
+                        <Ionicons
+                            name={timerSeconds <= 60 ? 'alarm-outline' : 'time-outline'}
+                            size={16}
+                            color="#FFFFFF"
+                        />
                         <Text style={styles.timerLabel}>
-                            {timerSeconds <= 60 ? '⚠️ Time Running Out!' : '⏱️ Time Remaining'}
+                            {timerSeconds <= 60 ? 'Time Running Out!' : 'Time Remaining'}
                         </Text>
                         <Text style={styles.timerValue}>{formatTime(timerSeconds)}</Text>
                         {timerSeconds === 0 && (
-                            <Text style={styles.timerDoneText}>Time's up — submit your results!</Text>
+                            <Text style={styles.timerDoneText}>Time's up — submit your results.</Text>
                         )}
                     </View>
                 )}

@@ -1,8 +1,4 @@
-/**
- * Map Screen — GPS + Maps Tab
- * Shows the team's current location on an interactive map.
- */
-
+import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -82,7 +78,7 @@ export default function MapScreen() {
     if (errorMsg || !coords) {
         return (
             <View style={[styles.centered, { backgroundColor: colors.background }]}>
-                <Text style={styles.errorIcon}>📍</Text>
+                <Ionicons name="location-outline" size={56} color={colors.error} style={{ marginBottom: Spacing.md }} />
                 <Text style={[styles.errorText, { color: colors.error }]}>
                     {errorMsg ?? 'Location unavailable.'}
                 </Text>
@@ -123,14 +119,17 @@ export default function MapScreen() {
                 onPress={recenter}
                 accessibilityLabel="Re-centre map on current location"
             >
-                <Text style={{ fontSize: 20 }}>🎯</Text>
+                <Ionicons name="locate-outline" size={22} color={colors.primary} />
             </TouchableOpacity>
 
             {/* Info card */}
             <View style={[styles.infoCard, { backgroundColor: colors.surface }, Shadows.lg]}>
-                <Text style={[styles.infoTitle, { color: colors.text }]}>
-                    📍 {team?.schoolName ?? 'Your Location'}
-                </Text>
+                <View style={styles.infoTitleRow}>
+                    <Ionicons name="location-outline" size={18} color={colors.text} />
+                    <Text style={[styles.infoTitle, { color: colors.text }]}>
+                        {team?.schoolName ?? 'Your Location'}
+                    </Text>
+                </View>
                 <Text style={[styles.coords, { color: colors.textSecondary }]}>
                     {coords.latitude.toFixed(5)}, {coords.longitude.toFixed(5)}
                 </Text>
@@ -157,10 +156,6 @@ const styles = StyleSheet.create({
         marginTop: Spacing.md,
         fontSize: Typography.bodyMedium.fontSize,
     },
-    errorIcon: {
-        fontSize: 48,
-        marginBottom: Spacing.md,
-    },
     errorText: {
         fontSize: Typography.bodyLarge.fontSize,
         textAlign: 'center',
@@ -184,10 +179,15 @@ const styles = StyleSheet.create({
         borderRadius: BorderRadius.xl,
         padding: Spacing.lg,
     },
+    infoTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.xs,
+        marginBottom: Spacing.xxs,
+    },
     infoTitle: {
         fontSize: Typography.titleMedium.fontSize,
         fontWeight: '600',
-        marginBottom: Spacing.xxs,
     },
     coords: {
         fontSize: Typography.bodySmall.fontSize,

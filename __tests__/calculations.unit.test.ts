@@ -1,11 +1,3 @@
-/**
- * UNIT TESTS — calculations.ts
- * Person 1 (Lesa)
- *
- * Tests every pure calculation function in isolation to verify that
- * STEMM physics formulas produce correct numeric outputs.
- */
-
 import {
     acceleration,
     averageDb,

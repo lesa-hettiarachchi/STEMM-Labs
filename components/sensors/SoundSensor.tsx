@@ -1,9 +1,4 @@
-/**
- * Sound Sensor Display (Activity 2 — Sound Pollution Hunter)
- * Live dB meter with EMA smoothing, zone-label tagging, GPS capture
- * per save, and a live noise-zone MapView that builds as readings accumulate.
- */
-
+import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
@@ -160,7 +155,10 @@ export default function SoundSensor({ colors, accentColor, onReadingUpdate, onSa
     <View style={styles.container}>
       {/* dB Display */}
       <View style={[styles.dbDisplay, { backgroundColor: colors.backgroundElement }]}>
-        <Text style={[styles.dbLabel, { color: colors.textSecondary }]}>🔊 Sound Level</Text>
+        <View style={styles.dbLabelRow}>
+          <Ionicons name="volume-high-outline" size={16} color={colors.textSecondary} />
+          <Text style={[styles.dbLabel, { color: colors.textSecondary }]}>Sound Level</Text>
+        </View>
         <Text style={[styles.dbValue, { color: barColor }]}>{currentDb}</Text>
         <Text style={[styles.dbUnit, { color: colors.textSecondary }]}>dB (approx)</Text>
       </View>
@@ -210,7 +208,12 @@ export default function SoundSensor({ colors, accentColor, onReadingUpdate, onSa
           onPress={handleToggle}
           accessibilityLabel={isActive ? 'Stop recording sound' : 'Start recording sound'}
         >
-          <Text style={styles.toggleText}>{isActive ? '⏹ Stop' : '🎙️ Start'}</Text>
+          <Ionicons
+            name={isActive ? 'stop-circle-outline' : 'mic-outline'}
+            size={20}
+            color="#FFFFFF"
+          />
+          <Text style={styles.toggleText}>{isActive ? 'Stop' : 'Start'}</Text>
         </TouchableOpacity>
 
         {isActive && (
@@ -220,8 +223,13 @@ export default function SoundSensor({ colors, accentColor, onReadingUpdate, onSa
             disabled={isSavingGps}
             accessibilityLabel="Save current reading for this zone"
           >
+            <Ionicons
+              name={isSavingGps ? 'location-outline' : 'bookmark-outline'}
+              size={18}
+              color={accentColor}
+            />
             <Text style={[styles.saveText, { color: accentColor }]}>
-              {isSavingGps ? '📍 Getting GPS…' : '📸 Save Zone'}
+              {isSavingGps ? 'Getting GPS…' : 'Save Zone'}
             </Text>
           </TouchableOpacity>
         )}
@@ -230,9 +238,12 @@ export default function SoundSensor({ colors, accentColor, onReadingUpdate, onSa
       {/* Saved readings list */}
       {savedReadings.length > 0 && (
         <View style={[styles.savedSection, { backgroundColor: colors.backgroundElement }]}>
-          <Text style={[styles.savedTitle, { color: colors.text }]}>
-            📋 Zone Readings
-          </Text>
+          <View style={styles.savedHeader}>
+            <Ionicons name="list-outline" size={16} color={colors.text} />
+            <Text style={[styles.savedTitle, { color: colors.text }]}>
+              Zone Readings
+            </Text>
+          </View>
           {savedReadings.map((reading, i) => (
             <View key={i} style={[styles.savedRow, { borderBottomColor: colors.border }]}>
               <View style={[styles.colorDot, { backgroundColor: reading.riskColor }]} />
@@ -247,9 +258,12 @@ export default function SoundSensor({ colors, accentColor, onReadingUpdate, onSa
       {/* Noise Zone Map — appears once 2+ GPS-tagged readings exist */}
       {gpsReadings.length >= 2 && mapRegion && (
         <View style={styles.mapWrapper}>
-          <Text style={[styles.mapTitle, { color: colors.text }]}>
-            🗺️ Noise Zone Map
-          </Text>
+          <View style={styles.mapHeader}>
+            <Ionicons name="map-outline" size={18} color={colors.text} />
+            <Text style={[styles.mapTitle, { color: colors.text }]}>
+              Noise Zone Map
+            </Text>
+          </View>
           <Text style={[styles.mapSubtitle, { color: colors.textSecondary }]}>
             Green = quiet · Orange = moderate · Red = loud
           </Text>
@@ -275,9 +289,12 @@ export default function SoundSensor({ colors, accentColor, onReadingUpdate, onSa
 
       {/* Prompt to walk around if only 1 reading so far */}
       {savedReadings.length === 1 && (
-        <Text style={[styles.walkHint, { color: colors.textSecondary }]}>
-          💡 Move to a different location, type its name, then save another reading to build your zone map.
-        </Text>
+        <View style={styles.walkHintRow}>
+          <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
+          <Text style={[styles.walkHint, { color: colors.textSecondary }]}>
+            Move to a different location, type its name, then save another reading to build your zone map.
+          </Text>
+        </View>
       )}
     </View>
   );
@@ -289,7 +306,13 @@ const styles = StyleSheet.create({
     width: '100%', padding: Spacing.xl, borderRadius: BorderRadius.lg,
     alignItems: 'center', marginBottom: Spacing.lg,
   },
-  dbLabel: { fontSize: Typography.bodyMedium.fontSize, marginBottom: Spacing.xs },
+  dbLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: Spacing.xs,
+  },
+  dbLabel: { fontSize: Typography.bodyMedium.fontSize },
   dbValue: { fontSize: 56, fontWeight: '700', fontVariant: ['tabular-nums'] },
   dbUnit: { fontSize: Typography.bodyMedium.fontSize, marginTop: Spacing.xxs },
   barContainer: {
@@ -320,16 +343,34 @@ const styles = StyleSheet.create({
   },
   buttonRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.lg, width: '100%' },
   toggleButton: {
-    flex: 1, paddingVertical: Spacing.lg, borderRadius: BorderRadius.lg, alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    paddingVertical: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
   },
   toggleText: { color: '#FFFFFF', fontSize: Typography.labelLarge.fontSize, fontWeight: '700' },
   saveButton: {
-    flex: 1, paddingVertical: Spacing.lg, borderRadius: BorderRadius.lg,
-    borderWidth: 1.5, alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    paddingVertical: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
   },
   saveText: { fontSize: Typography.labelLarge.fontSize, fontWeight: '600' },
   savedSection: { width: '100%', borderRadius: BorderRadius.lg, padding: Spacing.md, marginBottom: Spacing.md },
-  savedTitle: { fontSize: Typography.labelLarge.fontSize, fontWeight: '600', marginBottom: Spacing.sm },
+  savedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  savedTitle: { fontSize: Typography.labelLarge.fontSize, fontWeight: '600' },
   savedRow: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth, gap: Spacing.sm,
@@ -339,11 +380,24 @@ const styles = StyleSheet.create({
   savedDb: { fontSize: Typography.bodyMedium.fontSize, fontWeight: '600' },
   savedRisk: { fontSize: Typography.bodySmall.fontSize, fontWeight: '500', minWidth: 70, textAlign: 'right' },
   mapWrapper: { width: '100%', marginBottom: Spacing.md },
-  mapTitle: { fontSize: Typography.titleMedium.fontSize, fontWeight: '600', marginBottom: Spacing.xxs },
+  mapHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: Spacing.xxs,
+  },
+  mapTitle: { fontSize: Typography.titleMedium.fontSize, fontWeight: '600' },
   mapSubtitle: { fontSize: Typography.bodySmall.fontSize, marginBottom: Spacing.sm },
   map: { width: '100%', height: 200, borderRadius: BorderRadius.lg, overflow: 'hidden' },
+  walkHintRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    marginTop: Spacing.xs,
+  },
   walkHint: {
-    fontSize: Typography.bodySmall.fontSize, textAlign: 'center',
-    paddingHorizontal: Spacing.md, marginTop: Spacing.xs,
+    flex: 1,
+    fontSize: Typography.bodySmall.fontSize,
   },
 });

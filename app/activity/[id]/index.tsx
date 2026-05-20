@@ -1,8 +1,3 @@
-/**
- * Activity Overview Screen (Screen 6)
- * Shows activity details, equipment, curriculum, and start button
- */
-
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
@@ -13,7 +8,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-// import { SafeAreaView } from 'react-native-safe-area-context';
+
 
 import { getActivityById } from '@/constants/activities';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
@@ -52,6 +47,18 @@ export default function ActivityOverviewScreen() {
                     title: activity.name,
                     headerStyle: { backgroundColor: colors.surface },
                     headerTintColor: colors.text,
+                    headerLeft: () => (
+                        <TouchableOpacity
+                            onPress={() => {
+                                if (router.canGoBack()) router.back();
+                                else router.replace('/(tabs)');
+                            }}
+                            accessibilityLabel="Go back"
+                            style={{ paddingHorizontal: 4 }}
+                        >
+                            <Ionicons name="arrow-back" size={26} color={colors.text} />
+                        </TouchableOpacity>
+                    ),
                     headerRight: () => (
                         <TouchableOpacity
                             onPress={() => router.push('/help')}
@@ -104,9 +111,12 @@ export default function ActivityOverviewScreen() {
 
                     {/* Overview */}
                     <View style={[styles.section, { backgroundColor: colors.surface }, Shadows.sm]}>
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                            📖 Overview
-                        </Text>
+                        <View style={styles.sectionTitleRow}>
+                            <Ionicons name="information-circle-outline" size={18} color={colors.text} />
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                                Overview
+                            </Text>
+                        </View>
                         <Text style={[styles.bodyText, { color: colors.onSurface }]}>
                             {activity.overview}
                         </Text>
@@ -114,9 +124,12 @@ export default function ActivityOverviewScreen() {
 
                     {/* Key Measurement */}
                     <View style={[styles.section, { backgroundColor: colors.surface }, Shadows.sm]}>
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                            📊 Key Measurement
-                        </Text>
+                        <View style={styles.sectionTitleRow}>
+                            <Ionicons name="analytics-outline" size={18} color={colors.text} />
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                                Key Measurement
+                            </Text>
+                        </View>
                         <View style={[styles.measurementBadge, { backgroundColor: accentColor + '15' }]}>
                             <Text style={[styles.measurementText, { color: accentColor }]}>
                                 {activity.sensorLabel} → {activity.keyMeasurement}
@@ -126,9 +139,12 @@ export default function ActivityOverviewScreen() {
 
                     {/* Equipment */}
                     <View style={[styles.section, { backgroundColor: colors.surface }, Shadows.sm]}>
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                            🧰 Equipment
-                        </Text>
+                        <View style={styles.sectionTitleRow}>
+                            <Ionicons name="construct-outline" size={18} color={colors.text} />
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                                Equipment
+                            </Text>
+                        </View>
                         {activity.equipment.map((item, i) => (
                             <View key={i} style={styles.equipmentRow}>
                                 <Text style={[styles.bullet, { color: colors.primary }]}>•</Text>
@@ -141,9 +157,12 @@ export default function ActivityOverviewScreen() {
 
                     {/* Curriculum Links */}
                     <View style={[styles.section, { backgroundColor: colors.surface }, Shadows.sm]}>
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                            📚 Curriculum Links
-                        </Text>
+                        <View style={styles.sectionTitleRow}>
+                            <Ionicons name="school-outline" size={18} color={colors.text} />
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                                Curriculum Links
+                            </Text>
+                        </View>
                         {activity.curriculumLinks.map((link, i) => (
                             <View key={i} style={styles.curriculumRow}>
                                 <View style={[styles.codeChip, { backgroundColor: accentColor + '15' }]}>
@@ -194,7 +213,7 @@ export default function ActivityOverviewScreen() {
                         <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
                             {progress?.status === 'in_progress'
                                 ? 'Continue Activity'
-                                : 'Start Activity 🚀'}
+                                : 'Start Activity'}
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -260,10 +279,15 @@ const styles = StyleSheet.create({
         padding: Spacing.xl,
         borderRadius: BorderRadius.xl,
     },
+    sectionTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.xs,
+        marginBottom: Spacing.md,
+    },
     sectionTitle: {
         fontSize: Typography.titleMedium.fontSize,
         fontWeight: '600',
-        marginBottom: Spacing.md,
     },
     bodyText: {
         fontSize: Typography.bodyLarge.fontSize,

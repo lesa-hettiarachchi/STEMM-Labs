@@ -1,14 +1,5 @@
-/**
- * E2E COMPONENT TEST — Home Screen
- * Person 1 (Lesa)
- *
- * Renders the HomeScreen component inside the required providers and
- * asserts that all 7 activities are displayed with correct labels,
- * categories, and navigation behaviour.
- */
-
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react-native';
 
 // ─── Mocks (must be declared before any imports) ──────────────────
 

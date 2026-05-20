@@ -1,12 +1,7 @@
-/**
- * Team Profile Screen (Screen 3)
- * Displays team info, members, stats, and allows editing
- */
-
 import { ThemedText as Text } from '@/components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { batteryColor, batteryIcon, useBattery } from '@/hooks/useBattery';
+import { batteryColor, batteryIconName, useBattery } from '@/hooks/useBattery';
 import {
     Alert,
     Image,
@@ -116,9 +111,11 @@ export default function ProfileScreen() {
                 {/* Battery Card */}
                 {battery.isLoaded && (
                     <View style={[styles.batteryCard, { backgroundColor: colors.surface }, Shadows.sm]}>
-                        <Text style={[styles.batteryIcon]}>
-                            {batteryIcon(battery.level, battery.isCharging)}
-                        </Text>
+                        <Ionicons
+                            name={batteryIconName(battery.level, battery.isCharging)}
+                            size={26}
+                            color={batteryColor(battery.level)}
+                        />
                         <View style={{ flex: 1 }}>
                             <Text style={[styles.batteryLabel, { color: colors.textSecondary }]}>
                                 Device Battery
@@ -362,7 +359,6 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.lg,
         gap: Spacing.md,
     },
-    batteryIcon: { fontSize: 24 },
     batteryLabel: {
         fontSize: Typography.labelSmall.fontSize,
         marginBottom: Spacing.xs,

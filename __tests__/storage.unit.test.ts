@@ -1,12 +1,5 @@
-/**
- * UNIT TESTS — storage.ts
- * Person 2
- *
- * Tests AsyncStorage-backed persistence functions with a mocked
- * AsyncStorage to avoid real device/filesystem dependency.
- */
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { Team } from '../constants/types';
 import {
     clearAllData,
     clearTeamProfile,
@@ -17,7 +10,6 @@ import {
     saveSettings,
     saveTeamProfile,
 } from '../services/storage';
-import type { Team } from '../constants/types';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
     require('@react-native-async-storage/async-storage/jest/async-storage-mock')

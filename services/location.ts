@@ -1,11 +1,3 @@
-/**
- * GPS Location Service
- * Tags activity results with geographic coordinates.
- *
- * Wraps expo-location with a hard 4-second timeout so that a cold GPS lock
- * (typical when offline / no A-GPS data) doesn't block the UI for 30+ seconds.
- */
-
 import * as Location from 'expo-location';
 
 export interface GpsCoordinates {

@@ -1,15 +1,3 @@
-/**
- * INTEGRATION TESTS — notifications service
- * Person 2
- *
- * Tests the notification service with a mocked expo-notifications module.
- * Verifies that the service correctly calls the underlying Expo API
- * with the right parameters.
- */
-
-// jest.mock calls are hoisted before imports, so the factory must not
-// reference variables declared in the test file (they aren't initialised yet).
-// We use jest.fn() inline and access mocks via the module reference.
 jest.mock('expo-notifications', () => ({
     setNotificationHandler: jest.fn(),
     getPermissionsAsync: jest.fn(),

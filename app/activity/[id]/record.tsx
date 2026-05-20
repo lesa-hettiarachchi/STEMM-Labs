@@ -1,8 +1,3 @@
-/**
- * Data Recording Screen (Screen 8)
- * Live sensor data + editable data table + save to Firestore
- */
-
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -16,7 +11,10 @@ import {
     View,
 } from 'react-native';
 
+import EarthquakeDataTable from '@/components/activity/EarthquakeDataTable';
 import EditableDataTable from '@/components/activity/EditableDataTable';
+import HandFanDataTable from '@/components/activity/HandFanDataTable';
+import ParachuteDataTable from '@/components/activity/ParachuteDataTable';
 import AccelSensor from '@/components/sensors/AccelSensor';
 import ParachuteSensor from '@/components/sensors/ParachuteSensor';
 import ReactionSensor from '@/components/sensors/ReactionSensor';
@@ -31,17 +29,17 @@ import { useTeam } from '@/context/TeamContext';
 // ─── Activity 5: Guided movements ────────────────────────────────
 const GUIDED_MOVEMENTS = [
     {
-        icon: '🦾',
+        icon: 'arrow-up-outline' as const,
         name: 'Movement 1 — Slow Arm Raise',
         desc: 'Hold phone firmly in one hand. Raise your arm slowly overhead, then lower it. Keep movement smooth — no jerking.',
     },
     {
-        icon: '🤸',
+        icon: 'swap-horizontal-outline' as const,
         name: 'Movement 2 — Side Bend',
         desc: 'Hold phone flat against your chest. Slowly bend to the left as far as comfortable, return upright, then bend right.',
     },
     {
-        icon: '🫲',
+        icon: 'arrow-forward-outline' as const,
         name: 'Movement 3 — Forward Reach',
         desc: 'Hold phone in front of you at chest height. Reach forward as far as you can, then slowly return to start position.',
     },
@@ -83,10 +81,9 @@ export default function DataRecordingScreen() {
         }, 1000);
         return () => clearInterval(interval);
     }, [expiresAt]);
-    // Parachute-specific measurement inputs
+    // Parachute-specific setup (applies to all 3 designs in this session)
     const [dropHeight, setDropHeight] = useState('');
     const [toyMass, setToyMass] = useState('');
-    const [contactTime, setContactTime] = useState('');
 
     const currentIteration = activityProgress[id]?.currentIteration ?? 1;
 
@@ -110,17 +107,16 @@ export default function DataRecordingScreen() {
     const accentColor =
         activity.category === 'engineering' ? colors.engineering : colors.health;
 
-    // Push parachute measurement params to session whenever they change
+    // Push parachute setup (drop height + toy mass) to session as it changes.
+    // Per-row drop time and contact time live in dataTableRows, not calcParams.
     useEffect(() => {
         if (id === 'parachute-drop') {
             const h = parseFloat(dropHeight);
             const m = parseFloat(toyMass);
-            const ct = parseFloat(contactTime);
             if (!isNaN(h)) setCalcParam('distance', h);
             if (!isNaN(m)) setCalcParam('mass', m);
-            if (!isNaN(ct)) setCalcParam('contactTime', ct);
         }
-    }, [dropHeight, toyMass, contactTime, id]);
+    }, [dropHeight, toyMass, id]);
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -145,19 +141,10 @@ export default function DataRecordingScreen() {
     const renderSensor = () => {
         switch (activity.sensorType) {
             case 'camera':
-                // Parachute uses camera for slow-motion video, but also needs a timer
-                // for measuring drop time. Show the timer here; camera is separate screen.
-                return (
-                    <ParachuteSensor
-                        colors={colors}
-                        accentColor={accentColor}
-                        onTimerResult={(seconds) => {
-                            setCalcParam('time', seconds);
-                        }}
-                    />
-                );
-
             case 'timer':
+                // Parachute now uses inline per-row timers inside the data table,
+                // so no standalone stopwatch is needed in the sensor area.
+                if (id === 'parachute-drop') return null;
                 return (
                     <ParachuteSensor
                         colors={colors}
@@ -194,11 +181,12 @@ export default function DataRecordingScreen() {
                 );
 
             case 'accelerometer': {
+                // Hand fan and earthquake use inline per-row sensor modals
+                if (id === 'hand-fan' || id === 'earthquake-structure') return null;
+
                 // Pick the right mode based on activity ID (IDs use hyphens)
                 let mode: 'angle' | 'vibration' | 'smoothness' | 'breathing';
-                if (id === 'hand-fan') mode = 'angle';
-                else if (id === 'earthquake-structure') mode = 'vibration';
-                else if (id === 'human-performance') mode = 'smoothness';
+                if (id === 'human-performance') mode = 'smoothness';
                 else mode = 'breathing'; // breathing-pace
 
                 return (
@@ -253,6 +241,18 @@ export default function DataRecordingScreen() {
                     title: 'Record Data',
                     headerStyle: { backgroundColor: colors.surface },
                     headerTintColor: colors.text,
+                    headerLeft: () => (
+                        <TouchableOpacity
+                            onPress={() => {
+                                if (router.canGoBack()) router.back();
+                                else router.replace(`/activity/${id}`);
+                            }}
+                            accessibilityLabel="Go back"
+                            style={{ paddingHorizontal: 4 }}
+                        >
+                            <Ionicons name="arrow-back" size={26} color={colors.text} />
+                        </TouchableOpacity>
+                    ),
                     headerRight: () => (
                         <TouchableOpacity
                             onPress={() => router.push('/help')}
@@ -271,8 +271,12 @@ export default function DataRecordingScreen() {
                         styles.stickyTimer,
                         { backgroundColor: timerSeconds <= 60 ? '#EF4444' : accentColor },
                     ]}>
+                        <Ionicons
+                            name={timerSeconds <= 60 ? 'alarm-outline' : 'time-outline'}
+                            size={16}
+                            color="#FFFFFF"
+                        />
                         <Text style={styles.stickyTimerText}>
-                            {timerSeconds <= 60 ? '⚠️ ' : '⏱️ '}
                             {formatTime(timerSeconds)} remaining
                         </Text>
                     </View>
@@ -284,15 +288,20 @@ export default function DataRecordingScreen() {
                     {/* Activity 5 — Movement Guide (shown above the sensor) */}
                     {id === 'human-performance' && (
                         <View style={[styles.movementGuideCard, { backgroundColor: colors.surface }, Shadows.sm]}>
-                            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                                🏃 Movement Guide
-                            </Text>
+                            <View style={styles.sectionTitleRow}>
+                                <Ionicons name="walk-outline" size={18} color={colors.text} />
+                                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                                    Movement Guide
+                                </Text>
+                            </View>
                             <Text style={[styles.movementIntro, { color: colors.textSecondary }]}>
                                 Perform each movement slowly while holding the phone. The sensor measures speed and smoothness.
                             </Text>
                             {GUIDED_MOVEMENTS.map((m, i) => (
                                 <View key={i} style={[styles.movementRow, { borderTopColor: colors.border }]}>
-                                    <Text style={styles.movementIcon}>{m.icon}</Text>
+                                    <View style={[styles.movementIconWrap, { backgroundColor: accentColor + '15' }]}>
+                                        <Ionicons name={m.icon} size={20} color={accentColor} />
+                                    </View>
                                     <View style={styles.movementText}>
                                         <Text style={[styles.movementName, { color: colors.text }]}>{m.name}</Text>
                                         <Text style={[styles.movementDesc, { color: colors.textSecondary }]}>{m.desc}</Text>
@@ -302,37 +311,23 @@ export default function DataRecordingScreen() {
                         </View>
                     )}
 
-                    {/* Sensor Display Area */}
-                    <View
-                        style={[
-                            styles.sensorArea,
-                            { backgroundColor: colors.surface },
-                            Shadows.md,
-                        ]}
-                    >
-                        <Text style={[styles.sensorTitle, { color: colors.text }]}>
-                            {activity.sensorLabel}
-                        </Text>
-                        {renderSensor()}
+                    {/* Sensor Display Area — hidden for activities that use inline per-row sensors */}
+                    {id !== 'parachute-drop' && id !== 'hand-fan' && id !== 'earthquake-structure' && (
+                        <View
+                            style={[
+                                styles.sensorArea,
+                                { backgroundColor: colors.surface },
+                                Shadows.md,
+                            ]}
+                        >
+                            <Text style={[styles.sensorTitle, { color: colors.text }]}>
+                                {activity.sensorLabel}
+                            </Text>
+                            {renderSensor()}
+                        </View>
+                    )}
 
-                        {/* Parachute — inline camera shortcut so students can record the fall
-                            right at the moment the instruction says to, not just from results */}
-                        {id === 'parachute-drop' && (
-                            <TouchableOpacity
-                                style={[styles.inlineCameraBtn, { borderColor: accentColor }]}
-                                onPress={() => router.push(`/activity/${id}/camera`)}
-                                accessibilityLabel="Open camera to record slow-motion drop video"
-                                accessibilityRole="button"
-                            >
-                                <Ionicons name="videocam-outline" size={18} color={accentColor} />
-                                <Text style={[styles.inlineCameraBtnText, { color: accentColor }]}>
-                                    📹 Record Slow-Motion Drop Video
-                                </Text>
-                            </TouchableOpacity>
-                        )}
-                    </View>
-
-                    {/* Parachute Measurement Inputs */}
+                    {/* Parachute — Setup card (drop height + toy mass apply to all 3 designs) */}
                     {id === 'parachute-drop' && (
                         <View
                             style={[
@@ -341,9 +336,12 @@ export default function DataRecordingScreen() {
                                 Shadows.sm,
                             ]}
                         >
-                            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                                📏 Measurements
-                            </Text>
+                            <View style={styles.sectionTitleRow}>
+                                <Ionicons name="settings-outline" size={18} color={colors.text} />
+                                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                                    Setup (applies to all designs)
+                                </Text>
+                            </View>
                             <View style={styles.inputRow}>
                                 <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
                                     Drop Height (m)
@@ -372,24 +370,22 @@ export default function DataRecordingScreen() {
                                     accessibilityLabel="Toy mass in kilograms"
                                 />
                             </View>
-                            <View style={styles.inputRow}>
-                                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                                    Contact Time (s) — from slow-motion
+
+                            <TouchableOpacity
+                                style={[styles.inlineCameraBtn, { borderColor: accentColor }]}
+                                onPress={() => router.push(`/activity/${id}/camera`)}
+                                accessibilityLabel="Open camera to record slow-motion drop video"
+                                accessibilityRole="button"
+                            >
+                                <Ionicons name="videocam-outline" size={18} color={accentColor} />
+                                <Text style={[styles.inlineCameraBtnText, { color: accentColor }]}>
+                                    Record Slow-Motion Drop Video
                                 </Text>
-                                <TextInput
-                                    style={[styles.measureInput, { backgroundColor: colors.backgroundElement, color: colors.text, borderColor: colors.border }]}
-                                    keyboardType="decimal-pad"
-                                    placeholder="e.g. 0.05"
-                                    placeholderTextColor={colors.textSecondary}
-                                    value={contactTime}
-                                    onChangeText={setContactTime}
-                                    accessibilityLabel="Contact time in seconds from slow-motion video"
-                                />
-                            </View>
+                            </TouchableOpacity>
                         </View>
                     )}
 
-                    {/* Editable Data Table */}
+                    {/* Data Table — Parachute and Hand Fan use custom 3-design tables with inline sensors */}
                     <View
                         style={[
                             styles.tableCard,
@@ -397,18 +393,58 @@ export default function DataRecordingScreen() {
                             Shadows.sm,
                         ]}
                     >
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                            📋 Data Table
-                        </Text>
-                        <EditableDataTable
-                            columns={activity.dataTable.columns}
-                            initialRows={activity.dataTable.exampleRows}
-                            colors={colors}
-                            accentColor={accentColor}
-                            onDataChange={(rows: DataTableRow[]) => {
-                                setDataTableRows(rows);
-                            }}
-                        />
+                        <View style={styles.sectionTitleRow}>
+                            <Ionicons
+                                name={
+                                    id === 'parachute-drop' || id === 'hand-fan' || id === 'earthquake-structure'
+                                        ? 'layers-outline'
+                                        : 'list-outline'
+                                }
+                                size={18}
+                                color={colors.text}
+                            />
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                                {id === 'parachute-drop'
+                                    ? 'Parachute Designs (up to 3)'
+                                    : id === 'hand-fan'
+                                        ? 'Fan Designs (up to 3)'
+                                        : id === 'earthquake-structure'
+                                            ? 'Structure Designs (up to 3)'
+                                            : 'Data Table'}
+                            </Text>
+                        </View>
+                        {id === 'parachute-drop' ? (
+                            <ParachuteDataTable
+                                rows={session?.dataTableRows ?? []}
+                                colors={colors}
+                                accentColor={accentColor}
+                                onChange={(rows) => setDataTableRows(rows)}
+                            />
+                        ) : id === 'hand-fan' ? (
+                            <HandFanDataTable
+                                rows={session?.dataTableRows ?? []}
+                                colors={colors}
+                                accentColor={accentColor}
+                                onChange={(rows) => setDataTableRows(rows)}
+                            />
+                        ) : id === 'earthquake-structure' ? (
+                            <EarthquakeDataTable
+                                rows={session?.dataTableRows ?? []}
+                                colors={colors}
+                                accentColor={accentColor}
+                                onChange={(rows) => setDataTableRows(rows)}
+                            />
+                        ) : (
+                            <EditableDataTable
+                                columns={activity.dataTable.columns}
+                                initialRows={activity.dataTable.exampleRows}
+                                colors={colors}
+                                accentColor={accentColor}
+                                onDataChange={(rows: DataTableRow[]) => {
+                                    setDataTableRows(rows);
+                                }}
+                            />
+                        )}
                     </View>
 
                     {/* Star Rating */}
@@ -419,9 +455,12 @@ export default function DataRecordingScreen() {
                             Shadows.sm,
                         ]}
                     >
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                            ⭐ Rate This Activity
-                        </Text>
+                        <View style={styles.sectionTitleRow}>
+                            <Ionicons name="star-outline" size={18} color={colors.text} />
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                                Rate This Activity
+                            </Text>
+                        </View>
                         <View style={styles.starsRow}>
                             {[1, 2, 3, 4, 5].map((star) => (
                                 <TouchableOpacity
@@ -429,14 +468,11 @@ export default function DataRecordingScreen() {
                                     onPress={() => setRating(star)}
                                     accessibilityLabel={`Rate ${star} star${star > 1 ? 's' : ''}`}
                                 >
-                                    <Text
-                                        style={[
-                                            styles.star,
-                                            { opacity: star <= rating ? 1 : 0.3 },
-                                        ]}
-                                    >
-                                        ⭐
-                                    </Text>
+                                    <Ionicons
+                                        name={star <= rating ? 'star' : 'star-outline'}
+                                        size={32}
+                                        color={star <= rating ? '#F59E0B' : colors.textSecondary}
+                                    />
                                 </TouchableOpacity>
                             ))}
                         </View>
@@ -492,8 +528,11 @@ export default function DataRecordingScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     stickyTimer: {
+        flexDirection: 'row',
+        gap: Spacing.xs,
         paddingVertical: Spacing.sm,
         alignItems: 'center',
+        justifyContent: 'center',
     },
     stickyTimerText: {
         color: '#FFFFFF',
@@ -548,10 +587,15 @@ const styles = StyleSheet.create({
         padding: Spacing.lg,
         marginBottom: Spacing.lg,
     },
+    sectionTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.xs,
+        marginBottom: Spacing.md,
+    },
     sectionTitle: {
         fontSize: Typography.titleMedium.fontSize,
         fontWeight: '600',
-        marginBottom: Spacing.md,
     },
     ratingCard: {
         borderRadius: BorderRadius.xl,
@@ -564,7 +608,6 @@ const styles = StyleSheet.create({
         gap: Spacing.md,
         marginBottom: Spacing.xl,
     },
-    star: { fontSize: 32 },
     commentLabel: {
         fontSize: Typography.labelLarge.fontSize,
         fontWeight: '500',
@@ -616,7 +659,14 @@ const styles = StyleSheet.create({
         borderTopWidth: StyleSheet.hairlineWidth,
         gap: Spacing.md,
     },
-    movementIcon: { fontSize: 28, marginTop: 2 },
+    movementIconWrap: {
+        width: 40,
+        height: 40,
+        borderRadius: BorderRadius.full,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 2,
+    },
     movementText: { flex: 1 },
     movementName: {
         fontSize: Typography.labelLarge.fontSize,

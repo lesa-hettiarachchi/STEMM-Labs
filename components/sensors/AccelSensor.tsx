@@ -1,9 +1,3 @@
-/**
- * Accelerometer-based Sensor Display
- * Shared component for: Hand Fan (angle), Earthquake (vibration),
- * Human Performance (smoothness), Breathing (amplitude)
- */
-
 import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Animated } from 'react-native';
 import {
@@ -21,11 +15,11 @@ interface Props {
   onReadingUpdate: (reading: AccelerometerReading) => void;
 }
 
-const MODE_CONFIG: Record<AccelMode, { icon: string; label: string; unit: string }> = {
-  angle: { icon: '📐', label: 'Bend Angle', unit: '°' },
-  vibration: { icon: '🌊', label: 'Vibration Amplitude', unit: 'mm' },
-  smoothness: { icon: '🏃', label: 'Smoothness Score', unit: '/100' },
-  breathing: { icon: '🫁', label: 'Breathing Movement', unit: 'g' },
+const MODE_CONFIG: Record<AccelMode, { label: string; unit: string }> = {
+  angle: { label: 'Bend Angle', unit: '°' },
+  vibration: { label: 'Vibration Amplitude', unit: 'mm' },
+  smoothness: { label: 'Smoothness Score', unit: '/100' },
+  breathing: { label: 'Breathing Movement', unit: 'g' },
 };
 
 export default function AccelSensor({ mode, colors, accentColor, onReadingUpdate }: Props) {
@@ -111,7 +105,7 @@ export default function AccelSensor({ mode, colors, accentColor, onReadingUpdate
       {/* Value Display */}
       <View style={[styles.valueDisplay, { backgroundColor: colors.backgroundElement }]}>
         <Text style={[styles.displayLabel, { color: colors.textSecondary }]}>
-          {config.icon} {config.label}
+          {config.label}
         </Text>
         <Text style={[styles.displayValue, { color: accentColor }]}>
           {mode === 'smoothness' ? displayValue : displayValue.toFixed(1)}

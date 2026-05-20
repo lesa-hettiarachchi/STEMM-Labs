@@ -1,30 +1,14 @@
-/**
- * Background Task / Work Manager
- * Uses expo-task-manager + expo-background-fetch to run periodic tasks
- * when the app is in the background — equivalent to Android WorkManager.
- *
- * Registered task: check for unsynced activity attempts and fire a
- * reminder notification if any in-progress activities are found.
- *
- * NOTE: Background fetch is unavailable in Expo Go — all calls are guarded.
- */
-
 import * as BackgroundFetch from 'expo-background-fetch';
-import * as TaskManager from 'expo-task-manager';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
-import { getActivityProgress, getTeamProfile } from './storage';
-import { notifyActivityReminder } from './notifications';
+import * as TaskManager from 'expo-task-manager';
 import { getUnsyncedAttempts, markAttemptSynced } from './database';
 import { saveAttempt } from './firestore';
+import { notifyActivityReminder } from './notifications';
+import { getActivityProgress, getTeamProfile } from './storage';
 
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 export const BACKGROUND_SYNC_TASK = 'STEMM_BACKGROUND_SYNC';
-
-// ─── Pending-attempts sync ───────────────────────────────────────
-// Reads every SQLite row where synced=0 and tries to push it to Firestore.
-// If push succeeds, marks the row synced=1 so we don't re-send it.
-// Safe to call from foreground (e.g. on app start) and from background task.
 
 export async function syncPendingAttempts(): Promise<{
     pushed: number;
@@ -112,9 +96,9 @@ export async function registerBackgroundSync(): Promise<void> {
     const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_SYNC_TASK);
     if (!isRegistered) {
         await BackgroundFetch.registerTaskAsync(BACKGROUND_SYNC_TASK, {
-            minimumInterval: 15 * 60, // 15 minutes
-            stopOnTerminate: false,   // Android: keep running when app is terminated
-            startOnBoot: true,        // Android: restart on device reboot
+            minimumInterval: 15 * 60,
+            stopOnTerminate: false,
+            startOnBoot: true,
         });
     }
 }

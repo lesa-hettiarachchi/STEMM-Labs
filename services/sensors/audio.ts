@@ -14,8 +14,6 @@
 //   Conversation:  -35 to -25 dBFS → ~55-65 dB environmental
 //   Loud noise:    -15 to  -5 dBFS → ~75-85 dB environmental
 //
-// Offset 90 (was 100) corrects the ~10 dB over-read caused by Android AGC
-// (Automatic Gain Control) which artificially boosts microphone input levels.
 export const DBFS_OFFSET = 90;
 
 export interface AudioReading {

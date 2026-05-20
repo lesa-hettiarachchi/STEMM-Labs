@@ -1,8 +1,3 @@
-/**
- * Settings Context
- * Global state for theme mode + text size multiplier
- */
-
 import {
     AppSettings,
     getSettings,
@@ -14,7 +9,6 @@ import { useColorScheme } from 'react-native';
 interface SettingsContextValue {
     themeMode: 'system' | 'light' | 'dark';
     textSizeMultiplier: number;
-    /** Resolved theme based on themeMode + system preference */
     resolvedTheme: 'light' | 'dark';
     setThemeMode: (mode: 'system' | 'light' | 'dark') => void;
     setTextSizeMultiplier: (multiplier: number) => void;

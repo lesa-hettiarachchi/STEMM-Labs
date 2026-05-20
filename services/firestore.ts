@@ -1,7 +1,3 @@
-/**
- * Firestore CRUD Operations
- */
-
 import type {
     ActivityAttempt,
     LeaderboardEntry,
@@ -81,6 +77,14 @@ export async function getAttemptsByTeam(
 
 // ─── Leaderboard ─────────────────────────────────────────────────
 
+function stripUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
+    const out: Partial<T> = {};
+    (Object.keys(obj) as (keyof T)[]).forEach((key) => {
+        if (obj[key] !== undefined) out[key] = obj[key];
+    });
+    return out;
+}
+
 export async function upsertLeaderboardEntry(
     entry: LeaderboardEntry
 ): Promise<void> {
@@ -88,11 +92,12 @@ export async function upsertLeaderboardEntry(
     const existing = await getDoc(doc(db, LEADERBOARD, entryId));
 
     if (!existing.exists() || entry.bestScore > existing.data().bestScore) {
-        await setDoc(doc(db, LEADERBOARD, entryId), {
+        const payload = stripUndefined({
             ...entry,
             id: entryId,
             dateAchieved: serverTimestamp(),
         });
+        await setDoc(doc(db, LEADERBOARD, entryId), payload);
     }
 }
 
@@ -101,23 +106,21 @@ export async function getLeaderboard(
     gradeFilter?: string,
     maxResults: number = 50
 ): Promise<LeaderboardEntry[]> {
-    let q;
-    if (gradeFilter) {
-        q = query(
+    const q = gradeFilter
+        ? query(
             collection(db, LEADERBOARD),
             where('activityId', '==', activityId),
             where('gradeLevel', '==', gradeFilter),
-            orderBy('bestScore', 'desc'),
             limit(maxResults)
-        );
-    } else {
-        q = query(
+        )
+        : query(
             collection(db, LEADERBOARD),
             where('activityId', '==', activityId),
-            orderBy('bestScore', 'desc'),
             limit(maxResults)
         );
-    }
+
     const snap = await getDocs(q);
-    return snap.docs.map((d) => d.data() as LeaderboardEntry);
+    const entries = snap.docs.map((d) => d.data() as LeaderboardEntry);
+    // Sort highest-score-first client-side
+    return entries.sort((a, b) => (b.bestScore ?? 0) - (a.bestScore ?? 0));
 }

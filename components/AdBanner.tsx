@@ -1,10 +1,3 @@
-/**
- * AdBanner Component
- * Displays a Google AdMob banner ad at the bottom of the screen.
- * Uses test ad unit IDs during development.
- * Replace with real ad unit IDs for production.
- */
-
 import React from 'react';
 import { Platform, StyleSheet, View, Text } from 'react-native';
 
@@ -26,15 +19,13 @@ try {
 
 export default function AdBanner() {
     if (!isAdsAvailable || !BannerAd) {
-        // Fallback placeholder for Expo Go / non-native builds
         return (
             <View style={[styles.container, styles.placeholder]}>
-                <Text style={styles.placeholderText}>[AdMob Banner Placeholder — Native Build Required]</Text>
+                <Text style={styles.placeholderText}>[AdMob Banner Placeholder. Native Build Required]</Text>
             </View>
         );
     }
 
-    // Production ad unit IDs go here — keep out of source control in real apps
     const BANNER_AD_UNIT_ID = Platform.select({
         ios: TestIds.BANNER,
         android: TestIds.BANNER,

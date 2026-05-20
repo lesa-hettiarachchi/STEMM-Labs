@@ -1,8 +1,3 @@
-/**
- * Calculation Engine — All Activity Formulas
- * Pure functions from the STEMM User Specification
- */
-
 export interface CalculationResult {
   name: string;
   value: number;
@@ -118,6 +113,14 @@ export function hearingRiskLevel(db: number): string {
 
 // ─── Activity 3: Hand Fan ────────────────────────────────────────
 
+export const HAND_FAN_MATERIALS = {
+  paper: { label: 'Thin paper', k: 0.05 },
+  cardstock: { label: 'Card stock', k: 0.2 },
+  cardboard: { label: 'Thin cardboard', k: 0.5 },
+} as const;
+
+export type HandFanMaterial = keyof typeof HAND_FAN_MATERIALS;
+
 export function handFanForce(
   springConstant: number,
   thetaDegrees: number
@@ -130,6 +133,38 @@ export function handFanForce(
     unit: 'N',
     formula: `F = k × θ = ${springConstant} × ${thetaDegrees}° (${thetaRad.toFixed(4)} rad)`,
   };
+}
+
+
+export function calculateHandFanRowResults(
+  material: string,
+  angleDegrees: number
+): CalculationResult[] {
+  if (!Number.isFinite(angleDegrees) || angleDegrees <= 0) return [];
+  const k = (HAND_FAN_MATERIALS as Record<string, { k: number }>)[material]?.k ?? HAND_FAN_MATERIALS.paper.k;
+  return [handFanForce(k, angleDegrees)];
+}
+
+// ─── Activity 4: Earthquake-Resistant Structure ─────────────────
+
+export function calculateEarthquakeRowResults(amplitudeMm: number): CalculationResult[] {
+  if (!Number.isFinite(amplitudeMm) || amplitudeMm < 0) return [];
+
+  const stability = Math.max(0, Math.min(100, Math.round(100 - amplitudeMm * 10)));
+  return [
+    {
+      name: 'Peak Amplitude',
+      value: Math.round(amplitudeMm * 10) / 10,
+      unit: 'mm',
+      formula: 'max(vibration readings)',
+    },
+    {
+      name: 'Stability Score',
+      value: stability,
+      unit: '/100',
+      formula: '100 − (amplitude × 10), clamped 0–100',
+    },
+  ];
 }
 
 // ─── Activity 5: Human Performance ──────────────────────────────
@@ -162,11 +197,32 @@ export function breathsPerMinute(
   };
 }
 
+
+export function calculateParachuteRowResults(
+  distance: number,
+  mass: number,
+  dropTime: number,
+  contactTime: number
+): CalculationResult[] {
+  if (!Number.isFinite(distance) || distance <= 0) return [];
+  if (!Number.isFinite(dropTime) || dropTime <= 0) return [];
+
+  const vel = finalVelocity(distance, dropTime);
+  const acc = acceleration(vel.value, 0, dropTime);
+  const w = weight(mass);
+  const nf = netForce(mass, acc.value);
+  const df = dragForce(w.value, nf.value);
+  const results: CalculationResult[] = [vel, acc, nf, w, df];
+
+  if (Number.isFinite(contactTime) && contactTime > 0) {
+    results.push(gForceNoBounce(vel.value, contactTime));
+  }
+  return results;
+}
+
 // ─── Activity Router ─────────────────────────────────────────────
 
-/**
- * Calculate results for a specific activity using recorded data
- */
+
 export function calculateActivityResults(
   activityId: string,
   params: Record<string, number>,

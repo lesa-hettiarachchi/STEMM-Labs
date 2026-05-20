@@ -1,8 +1,4 @@
-/**
- * Reaction Sensor Display (Activity 6)
- * Tap target challenge with member rotation
- */
-
+import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   StyleSheet,
@@ -136,7 +132,7 @@ export default function ReactionSensor({ colors, accentColor, members, onComplet
           </Text>
         </View>
         <Text style={[styles.phaseLabel, { color: colors.text }]}>
-          🎯 Follow the Dot
+          Phase 3 · Follow the Dot
         </Text>
         <TracingChallenge
           colors={colors}
@@ -161,9 +157,9 @@ export default function ReactionSensor({ colors, accentColor, members, onComplet
 
     return (
       <View style={styles.container}>
-        <Text style={[styles.completeIcon]}>🎉</Text>
+        <Ionicons name="trophy-outline" size={48} color={accentColor} style={{ marginBottom: Spacing.md }} />
         <Text style={[styles.completeTitle, { color: colors.text }]}>
-          All 3 Phases Complete!
+          All 3 Phases Complete
         </Text>
         <View style={[styles.resultCard, { backgroundColor: colors.backgroundElement }]}>
           <Text style={[styles.resultLabel, { color: colors.textSecondary }]}>
@@ -213,7 +209,7 @@ export default function ReactionSensor({ colors, accentColor, members, onComplet
 
       {/* Phase Label */}
       <Text style={[styles.phaseLabel, { color: colors.text }]}>
-        {phase === 'tap' ? '👆 Phase 1 · Tap Reaction' : '🤲 Phase 2 · Swap Hands'}
+        {phase === 'tap' ? 'Phase 1 · Tap Reaction' : 'Phase 2 · Swap Hands'}
       </Text>
 
       {/* Play Area */}
@@ -313,7 +309,6 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
   },
   startButtonText: { color: '#FFF', fontSize: Typography.titleMedium.fontSize, fontWeight: '700' },
-  completeIcon: { fontSize: 48, marginBottom: Spacing.md },
   completeTitle: { fontSize: Typography.headlineMedium.fontSize, fontWeight: '700', marginBottom: Spacing.lg },
   resultCard: {
     width: '100%',
@@ -453,9 +448,12 @@ function TracingChallenge({
   if (finalAccuracy !== null) {
     return (
       <View style={tracingStyles.container}>
-        <Text style={[tracingStyles.scoreIcon]}>
-          {finalAccuracy >= 70 ? '🎯' : finalAccuracy >= 40 ? '👍' : '💪'}
-        </Text>
+        <Ionicons
+          name={finalAccuracy >= 70 ? 'trophy-outline' : finalAccuracy >= 40 ? 'thumbs-up-outline' : 'fitness-outline'}
+          size={48}
+          color={accentColor}
+          style={{ marginBottom: Spacing.sm }}
+        />
         <Text style={[tracingStyles.scoreValue, { color: accentColor }]}>
           {finalAccuracy}%
         </Text>
@@ -487,12 +485,20 @@ function TracingChallenge({
     <View style={tracingStyles.container}>
       {/* Timer + live accuracy */}
       <View style={tracingStyles.statsRow}>
-        <Text style={[tracingStyles.stat, { color: colors.text }]}>
-          ⏱ {timeLeft}s
-        </Text>
-        <Text style={[tracingStyles.stat, { color: isOnTarget ? '#10B981' : '#EF4444' }]}>
-          {isOnTarget ? '✓ On Target' : '✗ Off Target'}
-        </Text>
+        <View style={tracingStyles.statCell}>
+          <Ionicons name="time-outline" size={16} color={colors.text} />
+          <Text style={[tracingStyles.stat, { color: colors.text }]}>{timeLeft}s</Text>
+        </View>
+        <View style={tracingStyles.statCell}>
+          <Ionicons
+            name={isOnTarget ? 'checkmark-circle' : 'close-circle'}
+            size={16}
+            color={isOnTarget ? '#10B981' : '#EF4444'}
+          />
+          <Text style={[tracingStyles.stat, { color: isOnTarget ? '#10B981' : '#EF4444' }]}>
+            {isOnTarget ? 'On Target' : 'Off Target'}
+          </Text>
+        </View>
         <Text style={[tracingStyles.stat, { color: colors.textSecondary }]}>
           {samplesRef.current > 0
             ? `${Math.round((hitsRef.current / samplesRef.current) * 100)}%`
@@ -518,7 +524,7 @@ function TracingChallenge({
         />
       </View>
       <Text style={[tracingStyles.hint, { color: colors.textSecondary }]}>
-        Hold your finger on the {isOnTarget ? '🟢' : '🔵'} dot
+        Hold your finger on the dot
       </Text>
     </View>
   );
@@ -546,8 +552,14 @@ const tracingStyles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     width: '100%',
     marginBottom: Spacing.md,
+  },
+  statCell: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xxs,
   },
   stat: {
     fontSize: Typography.labelLarge.fontSize,
@@ -570,7 +582,6 @@ const tracingStyles = StyleSheet.create({
     fontSize: Typography.bodyMedium.fontSize,
     marginTop: Spacing.md,
   },
-  scoreIcon: { fontSize: 48, marginBottom: Spacing.sm },
   scoreValue: {
     fontSize: 56,
     fontWeight: '700',

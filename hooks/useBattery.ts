@@ -1,12 +1,8 @@
-/**
- * Battery level and charging state hook using expo-battery.
- */
-
 import * as Battery from 'expo-battery';
 import { useEffect, useState } from 'react';
 
 export interface BatteryInfo {
-    level: number | null;      // 0.0–1.0, null while loading
+    level: number | null;
     isCharging: boolean;
     isLoaded: boolean;
 }
@@ -56,12 +52,16 @@ export function useBattery(): BatteryInfo {
     return info;
 }
 
-export function batteryIcon(level: number | null, isCharging: boolean): string {
-    if (level === null) return '🔋';
-    if (isCharging) return '⚡';
-    if (level > 0.75) return '🔋';
-    if (level > 0.4) return '🪫';
-    return '🔴';
+/** Maps battery state to a one-line Ionicons icon name. */
+export function batteryIconName(
+    level: number | null,
+    isCharging: boolean
+): 'battery-charging-outline' | 'battery-full-outline' | 'battery-half-outline' | 'battery-dead-outline' {
+    if (isCharging) return 'battery-charging-outline';
+    if (level === null) return 'battery-half-outline';
+    if (level > 0.75) return 'battery-full-outline';
+    if (level > 0.2) return 'battery-half-outline';
+    return 'battery-dead-outline';
 }
 
 export function batteryColor(level: number | null): string {

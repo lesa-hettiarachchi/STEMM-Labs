@@ -1,7 +1,3 @@
-// Global mock for expo-constants — used by notifications.ts and backgroundTask.ts
-// to detect Expo Go.  In tests we want isExpoGo = false so the production code
-// paths get exercised, not the early-return guards.
-
 const ExecutionEnvironment = {
     Bare: 'bare',
     Standalone: 'standalone',

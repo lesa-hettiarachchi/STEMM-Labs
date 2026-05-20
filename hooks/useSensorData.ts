@@ -1,12 +1,3 @@
-/**
- * useSensorData — Unified sensor hook per activity
- * Selects the correct sensor service based on activityId,
- * returns a unified API for starting/stopping + collecting readings.
- *
- * Note: Microphone/audio is handled directly by the SoundSensor component
- * using expo-audio hooks — not through this hook.
- */
-
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getActivityById } from '@/constants/activities';
 import type { SensorReading } from '@/constants/types';
@@ -77,7 +68,6 @@ export function useSensorData(activityId: string): SensorData {
         accel.setOnReading((reading) => {
           setRawAccel(reading);
 
-          // Pick the reading type based on activity ID (IDs use hyphens)
           let value: number;
           let unit: string;
           if (activityId === 'hand-fan') {
@@ -104,7 +94,7 @@ export function useSensorData(activityId: string): SensorData {
       }
 
       case 'microphone':
-        // Audio recording is handled by the SoundSensor component directly
+        
         break;
 
       case 'timer': {

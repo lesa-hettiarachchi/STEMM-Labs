@@ -1,8 +1,3 @@
-/**
- * Video Capture Screen (Screen 10)
- * Record or pick video evidence for an activity, upload to Firebase Storage
- */
-
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -128,13 +123,34 @@ export default function CameraScreen() {
                     title: 'Capture Video',
                     headerStyle: { backgroundColor: colors.surface },
                     headerTintColor: colors.text,
+                    headerLeft: () => (
+                        <TouchableOpacity
+                            onPress={() => {
+                                if (router.canGoBack()) router.back();
+                                else router.replace(`/activity/${id}`);
+                            }}
+                            accessibilityLabel="Go back"
+                            style={{ paddingHorizontal: 4 }}
+                        >
+                            <Ionicons name="arrow-back" size={26} color={colors.text} />
+                        </TouchableOpacity>
+                    ),
                 }}
             />
             <View style={[styles.container, { backgroundColor: colors.background }]}>
                 <View style={styles.content}>
                     {/* Activity Info */}
                     <View style={[styles.infoCard, { backgroundColor: colors.surface }, Shadows.sm]}>
-                        <Text style={styles.infoIcon}>{activity?.icon ?? '📹'}</Text>
+                        {activity?.icon ? (
+                            <Text style={styles.infoIcon}>{activity.icon}</Text>
+                        ) : (
+                            <Ionicons
+                                name="videocam-outline"
+                                size={48}
+                                color={colors.primary}
+                                style={{ marginBottom: Spacing.md }}
+                            />
+                        )}
                         <Text style={[styles.infoTitle, { color: colors.text }]}>
                             {activity?.name ?? 'Video Evidence'}
                         </Text>

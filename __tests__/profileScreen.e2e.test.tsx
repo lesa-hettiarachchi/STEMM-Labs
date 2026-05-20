@@ -1,13 +1,5 @@
-/**
- * E2E COMPONENT TEST — Profile Screen
- * Person 2
- *
- * Renders the ProfileScreen with a mock team and verifies team info,
- * activity stats, battery widget, and edit flow behaviour.
- */
-
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import type { Team } from '../constants/types';
 
 // ─── Mocks ───────────────────────────────────────────────────────

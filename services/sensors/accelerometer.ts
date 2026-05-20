@@ -1,9 +1,3 @@
-/**
- * Accelerometer Sensor Service
- * Used for: Earthquake (vibration), Hand Fan (bend angle),
- *           Human Performance (smoothness), Breathing (chest movement)
- */
-
 import { Accelerometer, AccelerometerMeasurement } from 'expo-sensors';
 
 export interface AccelerometerReading {
@@ -11,11 +5,8 @@ export interface AccelerometerReading {
   y: number;
   z: number;
   timestamp: number;
-  /** Magnitude of acceleration vector minus gravity (m/s²) */
   vibrationMagnitude: number;
-  /** Vibration amplitude approximated in mm */
   vibrationAmplitudeMm: number;
-  /** Tilt angle from vertical in degrees (0 = upright, 90 = flat) */
   bendAngleDeg: number;
 }
 

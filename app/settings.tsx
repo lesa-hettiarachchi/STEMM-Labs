@@ -1,8 +1,3 @@
-/**
- * Settings Screen (Screen 12)
- * Theme toggle, text size, data reset, app info
- */
-
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -17,6 +12,7 @@ import {
 import { ThemedText as Text } from '@/components/ThemedText';
 
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
+import { useAuth } from '@/context/AuthContext';
 import { useSettings } from '@/context/SettingsContext';
 import { useTeam } from '@/context/TeamContext';
 import { clearAllData } from '@/services/storage';
@@ -37,6 +33,7 @@ export default function SettingsScreen() {
         setTextSizeMultiplier,
     } = useSettings();
     const { clearTeam } = useTeam();
+    const { user, signOut } = useAuth();
     const colors = Colors[resolvedTheme];
 
     const [selectedTextSizeMultiplier, setSelectedTextSizeMultiplier] = useState(textSizeMultiplier);
@@ -54,6 +51,25 @@ export default function SettingsScreen() {
                         await clearAllData();
                         await clearTeam();
                         router.replace('/');
+                    },
+                },
+            ]
+        );
+    };
+
+    const handleLogout = () => {
+        Alert.alert(
+            'Log Out',
+            'Local activity progress will stay on this device but will be hidden until you log back in.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Log Out',
+                    style: 'destructive',
+                    onPress: async () => {
+                        await clearTeam();          // forget team locally
+                        await signOut();            // clear Firebase session
+                        router.replace('/login');
                     },
                 },
             ]
@@ -209,6 +225,35 @@ export default function SettingsScreen() {
                     )}
                 </View>
 
+                {/* Account */}
+                {user && (
+                    <View style={[styles.section, { backgroundColor: colors.surface }, Shadows.sm]}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm }}>
+                            <Ionicons name="person-circle-outline" size={24} color={colors.primary} style={{ marginRight: Spacing.sm }} />
+                            <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0 }]}>
+                                Account
+                            </Text>
+                        </View>
+                        <Text style={[styles.sectionHint, { color: colors.textSecondary }]}>
+                            Logged in as
+                        </Text>
+                        <Text style={[styles.emailText, { color: colors.text }]} numberOfLines={1}>
+                            {user.email}
+                        </Text>
+                        <TouchableOpacity
+                            style={[styles.logoutButton, { borderColor: colors.primary }]}
+                            onPress={handleLogout}
+                            accessibilityLabel="Log out of this account"
+                            accessibilityRole="button"
+                        >
+                            <Ionicons name="log-out-outline" size={20} color={colors.primary} />
+                            <Text style={[styles.logoutButtonText, { color: colors.primary }]}>
+                                Log Out
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
                 {/* Danger Zone */}
                 <View style={[styles.section, { backgroundColor: colors.surface }, Shadows.sm]}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm }}>
@@ -320,6 +365,24 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     confirmButtonText: {
+        fontSize: Typography.labelLarge.fontSize,
+        fontWeight: '600',
+    },
+    emailText: {
+        fontSize: Typography.bodyLarge.fontSize,
+        fontWeight: '500',
+        marginBottom: Spacing.lg,
+    },
+    logoutButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: Spacing.sm,
+        height: 48,
+        borderRadius: BorderRadius.lg,
+        borderWidth: 1.5,
+    },
+    logoutButtonText: {
         fontSize: Typography.labelLarge.fontSize,
         fontWeight: '600',
     },
