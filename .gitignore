@@ -42,7 +42,7 @@ yarn-debug.*
 yarn-error.*
 
 .DS_Store
-.vscode/
+.vscode
 .idea/
 
 app-example

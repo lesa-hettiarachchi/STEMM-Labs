@@ -93,8 +93,12 @@ export default function CameraScreen() {
             uploadTask.on(
                 'state_changed',
                 (snapshot) => {
-                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    setUploadProgress(Math.round(progress));
+                    // Clamp to 0–100; Firebase can occasionally report
+                    // bytesTransferred slightly above totalBytes, and rounding
+                    // can push the bar past 100%.
+                    const raw = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    const clamped = Math.min(100, Math.max(0, Math.round(raw)));
+                    setUploadProgress(clamped);
                 },
                 (error) => {
                     console.error('Upload error:', error);

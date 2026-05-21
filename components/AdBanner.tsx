@@ -26,9 +26,13 @@ export default function AdBanner() {
         );
     }
 
+    // Read the real banner unit from env (EXPO_PUBLIC_ so it's inlined at
+    // build time and available at runtime). Falls back to Google's test
+    // banner ID if not set, so dev builds without the env var still show ads.
+    const realUnit = process.env.EXPO_PUBLIC_ADMOB_BANNER_UNIT_ID;
     const BANNER_AD_UNIT_ID = Platform.select({
-        ios: TestIds.BANNER,
-        android: TestIds.BANNER,
+        ios: realUnit || TestIds.BANNER,
+        android: realUnit || TestIds.BANNER,
         default: TestIds.BANNER,
     });
 

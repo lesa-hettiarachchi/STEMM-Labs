@@ -6,7 +6,6 @@ import {
     initializeAuth,
     onAuthStateChanged,
     sendPasswordResetEmail,
-    signInAnonymously,
     signInWithEmailAndPassword,
     type User,
 } from 'firebase/auth';
@@ -40,17 +39,6 @@ export const auth = initializeAuth(app, {
 
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-
-/** Sign in anonymously — legacy fallback. */
-export async function signInAnon() {
-    try {
-        const result = await signInAnonymously(auth);
-        return result.user;
-    } catch (error) {
-        console.warn('Anonymous auth failed:', error);
-        return null;
-    }
-}
 
 /** Create a new team account with email + password. */
 export async function signUpWithEmail(email: string, password: string): Promise<User> {

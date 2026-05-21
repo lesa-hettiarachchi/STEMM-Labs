@@ -16,7 +16,6 @@ import EditableDataTable from '@/components/activity/EditableDataTable';
 import HandFanDataTable from '@/components/activity/HandFanDataTable';
 import ParachuteDataTable from '@/components/activity/ParachuteDataTable';
 import AccelSensor from '@/components/sensors/AccelSensor';
-import ParachuteSensor from '@/components/sensors/ParachuteSensor';
 import ReactionSensor from '@/components/sensors/ReactionSensor';
 import SoundSensor from '@/components/sensors/SoundSensor';
 import { getActivityById } from '@/constants/activities';
@@ -138,23 +137,11 @@ export default function DataRecordingScreen() {
     };
 
     // ─── Render sensor based on activity type ─────────────────────
+    // Parachute / Hand Fan / Earthquake use inline per-row sensor widgets in
+    // their custom data-table components, so they don't need a standalone
+    // sensor block.  Only the activities below render here.
     const renderSensor = () => {
         switch (activity.sensorType) {
-            case 'camera':
-            case 'timer':
-                // Parachute now uses inline per-row timers inside the data table,
-                // so no standalone stopwatch is needed in the sensor area.
-                if (id === 'parachute-drop') return null;
-                return (
-                    <ParachuteSensor
-                        colors={colors}
-                        accentColor={accentColor}
-                        onTimerResult={(seconds) => {
-                            setCalcParam('time', seconds);
-                        }}
-                    />
-                );
-
             case 'microphone':
                 return (
                     <SoundSensor
