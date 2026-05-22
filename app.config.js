@@ -29,8 +29,16 @@ export default ({ config }) => ({
                 backgroundImage: './assets/images/android-icon-background.png',
                 monochromeImage: './assets/images/android-icon-monochrome.png',
             },
-            googleMaps: {
-                apiKey: process.env.GOOGLE_MAPS_ANDROID_API_KEY,
+            // Must be nested under `config.googleMaps` — Expo only writes the
+            // <meta-data android:name="com.google.android.geo.API_KEY" …> tag
+            // into AndroidManifest.xml when the key is at this exact path.
+            // Placing it directly under `android.googleMaps` silently drops it,
+            // and the map then crashes at runtime because the SDK initialises
+            // with no key.
+            config: {
+                googleMaps: {
+                    apiKey: process.env.GOOGLE_MAPS_ANDROID_API_KEY,
+                },
             },
             permissions: [
                 'android.permission.RECORD_AUDIO',
