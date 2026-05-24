@@ -113,6 +113,7 @@ export default function LoginScreen() {
                                 Team Email <Text style={{ color: colors.error }}>*</Text>
                             </Text>
                             <TextInput
+                                testID="login-email"
                                 style={[
                                     styles.input,
                                     {
@@ -140,6 +141,7 @@ export default function LoginScreen() {
                             </Text>
                             <View style={styles.passwordRow}>
                                 <TextInput
+                                    testID="login-password"
                                     style={[
                                         styles.input,
                                         styles.passwordInput,
@@ -185,6 +187,7 @@ export default function LoginScreen() {
 
                     {/* Submit */}
                     <TouchableOpacity
+                        testID="login-submit"
                         style={[
                             styles.submitButton,
                             { backgroundColor: colors.primary, opacity: isSubmitting ? 0.6 : 1 },

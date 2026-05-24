@@ -5,6 +5,8 @@ import { batteryColor, batteryIconName, useBattery } from '@/hooks/useBattery';
 import {
     Alert,
     Image,
+    KeyboardAvoidingView,
+    Platform,
     ScrollView,
     StyleSheet,
     TextInput,
@@ -72,9 +74,15 @@ export default function ProfileScreen() {
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+            >
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
             >
                 {/* Team Header Card */}
                 <View style={[styles.headerCard, { backgroundColor: colors.primary }]}>
@@ -265,6 +273,7 @@ export default function ProfileScreen() {
                     )}
                 </View>
             </ScrollView>
+            </KeyboardAvoidingView>
         </View>
     );
 }

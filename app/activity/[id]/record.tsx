@@ -3,6 +3,8 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     Alert,
+    KeyboardAvoidingView,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -268,9 +270,17 @@ export default function DataRecordingScreen() {
                         </Text>
                     </View>
                 )}
+                <KeyboardAvoidingView
+                    style={styles.kavWrap}
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    // On Android, native windowSoftInputMode + extra scroll padding does the work;
+                    // on iOS we need explicit padding behaviour to lift fields above the keyboard.
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+                >
                 <ScrollView
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
                 >
                     {/* Activity 5 — Movement Guide (shown above the sensor) */}
                     {id === 'human-performance' && (
@@ -488,6 +498,7 @@ export default function DataRecordingScreen() {
                         />
                     </View>
                 </ScrollView>
+                </KeyboardAvoidingView>
 
                 {/* Bottom Actions */}
                 <View style={[styles.bottomBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
@@ -527,9 +538,13 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         letterSpacing: 0.5,
     },
+    kavWrap: { flex: 1 },
     scrollContent: {
         padding: Spacing.lg,
-        paddingBottom: 100,
+        // Generous bottom padding so the keyboard doesn't cover the last input
+        // (rating + comment) — KeyboardAvoidingView lifts the keyboard but the
+        // scroll content still needs room to scroll past the bottom action bar.
+        paddingBottom: 220,
     },
     sensorArea: {
         borderRadius: BorderRadius.xl,
