@@ -1,0 +1,25 @@
+[
+  {
+    "eventType": "VIEW_TEXT_CHANGED",
+    "replacementText": "robotest@stemmlabs.app",
+    "elementDescriptors": [
+      { "contentDescription": "Team email" },
+      { "resourceId": "com.stemmlabs.app:id/login-email" }
+    ]
+  },
+  {
+    "eventType": "VIEW_TEXT_CHANGED",
+    "replacementText": "RoboTest2026!",
+    "elementDescriptors": [
+      { "contentDescription": "Password" },
+      { "resourceId": "com.stemmlabs.app:id/login-password" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "contentDescription": "Log in" },
+      { "resourceId": "com.stemmlabs.app:id/login-submit" }
+    ]
+  }
+]
