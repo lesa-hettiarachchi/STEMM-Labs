@@ -1,15 +1,10 @@
-/**
- * Activity Context — Session State for Activity Flow
- * Tracks current activity session: readings, data table, ratings
- */
-
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import type { SensorReading, DataTableRow, ActivityAttempt } from '@/constants/types';
 import { getActivityById } from '@/constants/activities';
-import { saveAttempt, upsertLeaderboardEntry } from '@/services/firestore';
-import { saveAttemptLocal, markAttemptSynced } from '@/services/database';
-import { getCurrentLocation } from '@/services/location';
+import type { ActivityAttempt, DataTableRow, SensorReading } from '@/constants/types';
 import { useTeam } from '@/context/TeamContext';
+import { markAttemptSynced, saveAttemptLocal } from '@/services/database';
+import { saveAttempt, upsertLeaderboardEntry } from '@/services/firestore';
+import { getCurrentLocation } from '@/services/location';
+import React, { createContext, useCallback, useContext, useState } from 'react';
 
 // ─── Leaderboard score derivation ────────────────────────────────
 // Each activity produces a numeric score so the leaderboard can rank teams.
@@ -80,7 +75,6 @@ interface ActivitySession {
   rating: number;
   comment: string;
   startedAt: number;
-  /** Params for calculations (activity-specific key-value) */
   calcParams: Record<string, number>;
 }
 
@@ -100,16 +94,16 @@ interface ActivityContextValue {
 
 const ActivityContext = createContext<ActivityContextValue>({
   session: null,
-  startSession: () => {},
-  addSensorReading: () => {},
-  setSensorReadings: () => {},
-  setDataTableRows: () => {},
-  setRating: () => {},
-  setComment: () => {},
-  setCalcParam: () => {},
-  setCalcParams: () => {},
+  startSession: () => { },
+  addSensorReading: () => { },
+  setSensorReadings: () => { },
+  setDataTableRows: () => { },
+  setRating: () => { },
+  setComment: () => { },
+  setCalcParam: () => { },
+  setCalcParams: () => { },
   saveSession: async () => null,
-  clearSession: () => {},
+  clearSession: () => { },
 });
 
 function generateId(): string {
@@ -170,7 +164,6 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
   const saveSession = useCallback(async (): Promise<ActivityAttempt | null> => {
     if (!session || !team) return null;
 
-    // GPS: capped at 4s by getCurrentLocation — returns null if offline / slow
     const location = await getCurrentLocation().catch(() => null);
 
     const attempt: ActivityAttempt = {
@@ -195,12 +188,11 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
     // 4. Mark SQLite row synced=1 when Firestore confirms  → backfill on reconnect
     // ───────────────────────────────────────────────────────────
 
-    // 1. Always save to SQLite first — this is the primary store
+
     await saveAttemptLocal(attempt).catch((err) =>
       console.warn('SQLite save failed:', err)
     );
 
-    // Derive leaderboard score from actual sensor/calc/table data
     const { score, unit } = deriveBestScore(
       session.activityId,
       session.calcParams,
@@ -220,9 +212,8 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
     const prevBest = activityProgress[session.activityId]?.bestScore;
     const newBest = prevBest !== undefined ? Math.max(prevBest, score) : score;
 
-    const justCompleted = session.iteration; // 1-based iteration that was just saved
+    const justCompleted = session.iteration;
     const isLastIteration = justCompleted >= maxIterations;
-    // Cap currentIteration at maxIterations so the UI doesn't show "Iteration 4 of 3"
     const nextIteration = Math.min(justCompleted + 1, maxIterations);
 
     updatedProgress[session.activityId] = {
@@ -234,16 +225,10 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
 
     await updateActivityProgress(updatedProgress);
 
-    // 3. Fire-and-forget Firestore push.  Firebase SDK queues offline writes,
-    //    so calling this is safe even with no connection — the write goes out
-    //    when network returns.  When it succeeds we flag the SQLite row.
     saveAttempt(attempt)
-      .then(() => markAttemptSynced(attempt.id).catch(() => {}))
+      .then(() => markAttemptSynced(attempt.id).catch(() => { }))
       .catch((err) => console.warn('Firestore save queued/failed:', err));
 
-    // Push leaderboard entry (Firestore handles offline queuing here too).
-    // Note: upsertLeaderboardEntry strips undefined fields before write,
-    // so optional fields like schoolName are handled correctly.
     upsertLeaderboardEntry({
       id: '',
       teamId: team.id,

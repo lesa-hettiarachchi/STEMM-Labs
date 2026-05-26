@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
@@ -16,7 +16,7 @@ import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/
 import { useSettings } from '@/context/SettingsContext';
 import { useTeam } from '@/context/TeamContext';
 import { storage } from '@/services/firebase';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
 
 export default function CameraScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -109,7 +109,7 @@ export default function CameraScreen() {
                     const url = await getDownloadURL(uploadTask.snapshot.ref);
                     setDownloadUrl(url);
                     setUploading(false);
-                    Alert.alert('✅ Upload Complete', 'Your video evidence has been saved!');
+                    Alert.alert('Upload Complete', 'Your video evidence has been saved!');
                 }
             );
         } catch (error) {
@@ -222,7 +222,6 @@ export default function CameraScreen() {
                     {/* Upload Complete */}
                     {downloadUrl && (
                         <View style={[styles.successCard, { backgroundColor: '#10B981' + '15' }]}>
-                            <Text style={styles.successIcon}>✅</Text>
                             <Text style={[styles.successText, { color: '#10B981' }]}>
                                 Video uploaded successfully!
                             </Text>
