@@ -8,11 +8,29 @@ import { Spacing, BorderRadius, Typography } from '@/constants/theme';
 
 type AccelMode = 'angle' | 'vibration' | 'smoothness' | 'breathing';
 
+export interface AccelSensorSummary {
+  mode: AccelMode;
+  durationSeconds: number;
+  /** breathing: peak count (local maxima on z-axis) */
+  peaks?: number;
+  /** breathing: derived BPM */
+  bpm?: number;
+  /** smoothness: 0–100 score */
+  smoothness?: number;
+  /** vibration: peak amplitude in mm */
+  peakVibrationMm?: number;
+  /** angle: peak bend in degrees */
+  peakAngleDeg?: number;
+}
+
 interface Props {
   mode: AccelMode;
   colors: Record<string, string>;
   accentColor: string;
-  onReadingUpdate: (reading: AccelerometerReading) => void;
+  /** Fires on every raw accelerometer reading while active */
+  onReadingUpdate?: (reading: AccelerometerReading) => void;
+  /** Fires once when the user presses Stop, with aggregated summary */
+  onComplete?: (summary: AccelSensorSummary) => void;
 }
 
 const MODE_CONFIG: Record<AccelMode, { label: string; unit: string }> = {
@@ -22,7 +40,7 @@ const MODE_CONFIG: Record<AccelMode, { label: string; unit: string }> = {
   breathing: { label: 'Breathing Movement', unit: 'g' },
 };
 
-export default function AccelSensor({ mode, colors, accentColor, onReadingUpdate }: Props) {
+export default function AccelSensor({ mode, colors, accentColor, onReadingUpdate, onComplete }: Props) {
   const accelRef = useRef(createAccelerometerService());
   const [isActive, setIsActive] = useState(false);
   const [displayValue, setDisplayValue] = useState(0);
@@ -62,11 +80,31 @@ export default function AccelSensor({ mode, colors, accentColor, onReadingUpdate
     if (isActive) {
       accel.stop();
       setIsActive(false);
+
+      // Build summary based on mode and fire onComplete so the parent screen
+      // can persist results into calcParams / sensorReadings.
+      if (onComplete) {
+        const elapsed = startTimeRef.current
+          ? Math.max(1, Math.round((Date.now() - startTimeRef.current) / 1000))
+          : durationSeconds;
+        const summary: AccelSensorSummary = { mode, durationSeconds: elapsed };
+        if (mode === 'breathing') {
+          summary.peaks = accel.getBreathPeakCount();
+          summary.bpm = accel.getBreathsPerMinute(elapsed);
+        } else if (mode === 'smoothness') {
+          summary.smoothness = accel.getSmoothnessScore();
+        } else if (mode === 'vibration') {
+          summary.peakVibrationMm = accel.getPeakVibration();
+        } else if (mode === 'angle') {
+          summary.peakAngleDeg = peakValue;
+        }
+        onComplete(summary);
+      }
     } else {
       accel.setOnReading((reading) => {
         const val = getValue(reading);
         setDisplayValue(val);
-        onReadingUpdate(reading);
+        if (onReadingUpdate) onReadingUpdate(reading);
 
         if (mode !== 'smoothness' && val > peakValue) setPeakValue(val);
 

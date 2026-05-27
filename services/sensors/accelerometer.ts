@@ -106,11 +106,9 @@ export function createAccelerometerService() {
       return Math.round(score);
     },
 
-    /** Count breathing cycles from z-axis peaks over a duration */
-    getBreathsPerMinute(durationSeconds: number): number {
-      if (readings.length < 20 || durationSeconds <= 0) return 0;
-
-      // Look at z-axis values, find peaks (local maxima)
+    /** Count breathing peaks (local maxima on z-axis) over the whole window */
+    getBreathPeakCount(): number {
+      if (readings.length < 20) return 0;
       const zValues = readings.map((r) => r.z);
       let peaks = 0;
       for (let i = 1; i < zValues.length - 1; i++) {
@@ -122,7 +120,13 @@ export function createAccelerometerService() {
           }
         }
       }
+      return peaks;
+    },
 
+    /** Count breathing cycles from z-axis peaks over a duration */
+    getBreathsPerMinute(durationSeconds: number): number {
+      if (readings.length < 20 || durationSeconds <= 0) return 0;
+      const peaks = this.getBreathPeakCount();
       // Scale to breaths per minute
       return Math.round((peaks / durationSeconds) * 60);
     },

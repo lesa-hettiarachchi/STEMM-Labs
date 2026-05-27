@@ -183,7 +183,38 @@ export default function DataRecordingScreen() {
                         mode={mode}
                         colors={colors}
                         accentColor={accentColor}
-                        onReadingUpdate={() => {}}
+                        onComplete={(summary) => {
+                            // Persist the aggregated result into the session so
+                            // results.tsx can compute BPM / smoothness instead
+                            // of falling back to zeros.
+                            if (summary.mode === 'breathing') {
+                                const peaks = summary.peaks ?? 0;
+                                const duration = summary.durationSeconds || 60;
+                                setCalcParam('peaks', peaks);
+                                setCalcParam('duration', duration);
+                                addSensorReading({
+                                    id: Date.now().toString(36),
+                                    sensorType: 'accelerometer',
+                                    value: summary.bpm ?? 0,
+                                    unit: 'BPM',
+                                    timestamp: Date.now(),
+                                });
+                            } else if (summary.mode === 'smoothness') {
+                                const smooth = summary.smoothness ?? 0;
+                                setCalcParam('smoothness', smooth);
+                                // Default distance/time for human-performance so the
+                                // movement-speed result isn't blank either.
+                                setCalcParam('distance', 1);
+                                setCalcParam('time', Math.max(1, summary.durationSeconds));
+                                addSensorReading({
+                                    id: Date.now().toString(36),
+                                    sensorType: 'accelerometer',
+                                    value: smooth,
+                                    unit: '/100',
+                                    timestamp: Date.now(),
+                                });
+                            }
+                        }}
                     />
                 );
             }
